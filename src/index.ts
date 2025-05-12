@@ -1,20 +1,16 @@
 // Main entry point
-export { TypeScriptToSQLConverter } from './converter';
-export { 
-  convertTSToSQL, 
-  convertSourceToSQL 
-} from './converter';
+export { TypeScriptToSQLConverter } from './converter'
+export { convertTSToSQL, convertSourceToSQL } from './converter'
 
 // Export types
-export type { 
+export type {
   DatabaseType,
   ColumnDefinition,
   TableDefinition,
   IndexDefinition,
-  ConverterOptions
-} from './types';
+  ConverterOptions,
+} from './types'
 
-// Export type utilities
 export type {
   Reference,
   Generated,
@@ -26,14 +22,12 @@ export type {
   Text,
   Keys,
   Index,
-  UniqueIndex
-} from './types';
+  UniqueIndex,
+} from './types'
 
-// Export adapters for advanced usage
 export {
   DatabaseAdapter,
   DatabaseAdapterFactory,
   PostgreSQLAdapter,
-  MSSQLAdapter,
-  SQLiteAdapter
-} from './adapters';
+  SQLiteAdapter,
+} from './adapters'

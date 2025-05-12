@@ -1,28 +1,24 @@
-import { 
-  ColumnType, 
-  Generated 
-} from 'kysely'
+import { ColumnType, Generated } from 'kysely'
 
-import { 
-  Reference, 
-  Unique, 
-  Default, 
-  Primary, 
-  UniqueIndex, 
+import {
+  Reference,
+  Unique,
+  Default,
+  Primary,
+  UniqueIndex,
   Keys,
   Text,
   Sized,
-} from './index.js';
+} from '../index.js'
 
-// User Interface
 export interface UsersTable {
   id: Generated<Primary<number>>
   name: Sized<string, 100> | null
   email: Unique<Sized<string, 255>>
   passwordHash: Text<string>
   role: Default<string, 'member'>
-  createdAt: Default<ColumnType<Date, string | null, never>, 'now()'>
-  updatedAt: Default<ColumnType<Date, never, Date>, 'now()'>
+  createdAt: Default<Date, 'now()'>
+  updatedAt: Default<Data, 'now()'>
   deletedAt: null | Date
 }
 
@@ -46,9 +42,6 @@ export interface TeamMembersTable {
   joinedAt: Date
 }
 
-export type Indexes = 
-  & UniqueIndex<TeamMembersTable, Keys<'teamId', 'userId'>>
-
 export interface ActivityLogTable {
   id: number
   teamId: number
@@ -60,15 +53,16 @@ export interface ActivityLogTable {
 
 export interface InvitationsTable {
   id: number
-  teamId: number
+  teamId: Reference<TeamsTable, 'id', number>
   email: string
   role: string
-  invitedBy: number
-  invitedAt: Date
+  invitedBy: Reference<UsersTable, 'id', number>
+  invitedAt: Default<Date, 'now()'>
   status: string
 }
 
-// Activity Type Enum (kept as-is)
+export type Indexes = UniqueIndex<TeamMembersTable, Keys<'teamId', 'userId'>>
+
 export enum ActivityType {
   SIGN_UP = 'SIGN_UP',
   SIGN_IN = 'SIGN_IN',

@@ -1,28 +1,25 @@
 
 CREATE TABLE IF NOT EXISTS "users" (
-  "id" serial PRIMARY KEY NOT NULL,
+  "id" text NOT NULL,
   "name" varchar(100),
-  "email" varchar(255) NOT NULL,
+  "email" text NOT NULL,
   "passwordHash" text NOT NULL,
-  "role" varchar(255) DEFAULT 'member' NOT NULL,
-  "createdAt" timestamp DEFAULT now(),
-  "updatedAt" timestamp DEFAULT now() NOT NULL,
-  "deletedAt" timestamp,
-  CONSTRAINT "users_email_unique" UNIQUE("email")
+  "role" text NOT NULL,
+  "createdAt" text NOT NULL,
+  "updatedAt" text NOT NULL,
+  "deletedAt" timestamp
 );
 
 CREATE TABLE IF NOT EXISTS "teams" (
   "id" integer NOT NULL,
   "name" varchar(255) NOT NULL,
-  "createdAt" timestamp DEFAULT now() NOT NULL,
-  "updatedAt" timestamp DEFAULT now() NOT NULL,
-  "stripeCustomerId" varchar(255),
-  "stripeSubscriptionId" varchar(255),
+  "createdAt" text NOT NULL,
+  "updatedAt" text NOT NULL,
+  "stripeCustomerId" text NOT NULL,
+  "stripeSubscriptionId" text NOT NULL,
   "stripeProductId" varchar(255),
   "planName" varchar(255),
-  "subscriptionStatus" varchar(255),
-  CONSTRAINT "teams_stripe_customer_id_unique" UNIQUE("stripeCustomerId"),
-  CONSTRAINT "teams_stripe_subscription_id_unique" UNIQUE("stripeSubscriptionId")
+  "subscriptionStatus" varchar(255)
 );
 
 CREATE TABLE IF NOT EXISTS "team_members" (
@@ -48,7 +45,7 @@ CREATE TABLE IF NOT EXISTS "invitations" (
   "email" varchar(255) NOT NULL,
   "role" varchar(255) NOT NULL,
   "invitedBy" integer NOT NULL,
-  "invitedAt" timestamp NOT NULL,
+  "invitedAt" text NOT NULL,
   "status" varchar(255) NOT NULL
 );
 
@@ -64,6 +61,20 @@ END $$;
 DO $$ BEGIN
  ALTER TABLE "team_members" ADD CONSTRAINT "team_members_team_id_teams_id_fk"
  FOREIGN KEY ("teamId") REFERENCES "public"."teams"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "invitations" ADD CONSTRAINT "invitations_team_id_teams_id_fk"
+ FOREIGN KEY ("teamId") REFERENCES "public"."teams"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+ ALTER TABLE "invitations" ADD CONSTRAINT "invitations_invited_by_users_id_fk"
+ FOREIGN KEY ("invitedBy") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
