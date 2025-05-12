@@ -1,8 +1,9 @@
-// Main entry point
-export { TypeScriptToSQLConverter } from './converter'
-export { convertTSToSQL, convertSourceToSQL } from './converter'
+export {
+  TypeScriptToSQLConverter,
+  createSQLSchemaFromSource,
+  createSQLSchemaFromFile,
+} from './converter'
 
-// Export types
 export type {
   DatabaseType,
   ColumnDefinition,
@@ -26,8 +27,7 @@ export type {
 } from './types'
 
 export {
-  DatabaseAdapter,
-  DatabaseAdapterFactory,
-  PostgreSQLAdapter,
-  SQLiteAdapter,
-} from './adapters'
+  DialectAdapterFactory,
+  PostgreSQLDialect,
+  SQLiteDialect,
+} from './dialects'

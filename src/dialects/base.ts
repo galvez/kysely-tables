@@ -1,25 +1,14 @@
-import { DatabaseAdapter, TableDefinition } from '../types'
+import type { Dialect, DialectAdapter, TableDefinition } from '../types'
 
-export abstract class BaseDatabaseAdapter implements DatabaseAdapter {
-  protected tables: TableDefinition[]
-  protected databaseType: import('../types').DatabaseType
+export abstract class BaseDialectAdapter implements DialectAdapter {
+  tables: TableDefinition[]
+  dialect: Dialect
 
-  constructor(
-    tables: TableDefinition[],
-    databaseType: import('../types').DatabaseType,
-  ) {
+  constructor(tables: TableDefinition[], dialect: Dialect) {
     this.tables = tables
-    this.databaseType = databaseType
+    this.dialect = dialect
   }
 
-  protected convertNameToSnakeCase(name: string): string {
-    return name
-      .replace(/([A-Z])/g, '_$1')
-      .toLowerCase()
-      .replace(/^_/, '');
-  }
-  
-  // Abstract methods
   abstract convertTSTypeToSQL(tsType: string, nullable: boolean): string
   abstract generateCreateTableStatement(table: TableDefinition): string
   abstract generateIndexStatements(indexes: IndexDefinition[]): string[]

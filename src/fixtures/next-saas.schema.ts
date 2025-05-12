@@ -1,4 +1,4 @@
-import { ColumnType, Generated } from 'kysely'
+import { Generated } from 'kysely'
 
 import {
   Reference,

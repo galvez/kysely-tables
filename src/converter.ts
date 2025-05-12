@@ -1,59 +1,59 @@
 import * as ts from 'typescript'
 import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
+import { snakeCase } from 'scule'
 
 import {
-  DatabaseType,
+  DialectAdapter,
+  DialectAdapterClass,
   ConverterOptions,
   TableDefinition,
   ColumnDefinition,
   IndexDefinition,
 } from './types'
 
-import { DatabaseAdapter, DatabaseAdapterFactory } from './adapters'
+import {
+  REFERENCE_UTILITY,
+  SIZED_UTILITY,
+  NULLABLE,
+  UNION_WITH_NULL,
+  UNION_WITH_UNDEFINED,
+} from './regex'
 
-export class TypeScriptToSQLConverter {
-  UNION_WITH_NULL_REGEX = /^(.+?)\s*\|\s*null\s*$|^null\s*\|\s*(.+?)$/
-  UNION_WITH_UNDEFINED_REGEX = /^(.+?)\s*\|\s*undefined\s*$|^undefined\s*\|\s*(.+?)$/
-
+export class KyselyTables {
   private sourceFile: ts.SourceFile
-  private tables: TableDefinition[] = []
-  private tableInterfaces: Set<string> = new Set()
+  private tables: TableDefinition[]
+  private tableInterfaces: Set<string>
   private indexes: IndexDefinition[] = []
-  private databaseAdapter: DatabaseAdapter
+  private adapter: DialectAdapter
+  private adapterClass: DialectAdapterClass
 
-  constructor(options: ConverterOptions | string, indexes?: IndexDefinition[]) {
-    // Handle backward compatibility
-    if (typeof options === 'string') {
-      options = { filePath: options, databaseType: 'postgresql' }
-    }
-
-    // Set default database type
-    const databaseType = options.databaseType || 'postgresql'
-
-    // Store indexes if provided
-    this.indexes = indexes || []
+  constructor(options: ConverterOptions) {
+    this.tables = []
+    this.tableInterfaces = new Set()
+    this.adapterClass = options.dialect
 
     let sourceCode: string
     let fileName: string
 
     if (options.source) {
       sourceCode = options.source
-      fileName = options.fileName || 'schema.ts'
+      fileName = options.fileName
     } else if (options.filePath) {
       try {
         sourceCode = readFileSync(options.filePath, 'utf8')
         fileName = basename(options.filePath)
       } catch (error) {
         throw new Error(
-          `Failed to read file ${options.filePath}: ${error instanceof Error ? error.message : String(error)}`,
+          `Failed to read file ${options.filePath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         )
       }
     } else {
       throw new Error('Either source or filePath must be provided')
     }
 
-    // Ensure sourceCode is a string
     if (typeof sourceCode !== 'string') {
       throw new Error('Source code must be a string')
     }
@@ -64,16 +64,8 @@ export class TypeScriptToSQLConverter {
       ts.ScriptTarget.Latest,
       true,
     )
-
-    // Initialize adapter - we'll create it once tables are collected
-    // For now, create a temporary adapter
-    this.databaseAdapter = DatabaseAdapterFactory.createAdapter(
-      databaseType,
-      [],
-    )
   }
 
-  // Method to collect table names and interfaces
   private collectTableInterfaces(node: ts.Node): void {
     if (ts.isInterfaceDeclaration(node)) {
       const interfaceName = node.name.text
@@ -86,7 +78,6 @@ export class TypeScriptToSQLConverter {
     ts.forEachChild(node, this.collectTableInterfaces.bind(this))
   }
 
-  // Extract type string from TypeScript AST nodes
   private extractTypeString(typeNode: ts.TypeNode): string {
     if (ts.isUnionTypeNode(typeNode)) {
       return typeNode.types.map((t) => this.extractTypeString(t)).join(' | ')
@@ -204,18 +195,11 @@ export class TypeScriptToSQLConverter {
     }
   }
 
-  // Get table name from interface name
   private getTableNameFromInterface(interfaceName: string): string {
     const withoutSuffix = interfaceName.replace(/Table$/, '')
-    const snakeCase = withoutSuffix
-      .replace(/([A-Z])/g, '_$1')
-      .toLowerCase()
-      .slice(1)
-
-    return snakeCase
+    return snakeCase(withoutSuffix)
   }
 
-  // Analyze interface and create table definition
   private analyzeInterface(node: ts.Node): void {
     if (ts.isInterfaceDeclaration(node)) {
       const interfaceName = node.name.text
@@ -262,18 +246,20 @@ export class TypeScriptToSQLConverter {
             processedTypes.add(currentType)
 
             // Null and undefined
-            const unionWithNullableMatch = 
-              currentType.match(this.UNION_WITH_NULL_REGEX)
-              ?? currentType.match(this.UNION_WITH_UNDEFINED_REGEX)
+            const unionWithNullableMatch =
+              currentType.match(UNION_WITH_NULL) ??
+              currentType.match(UNION_WITH_UNDEFINED)
 
             if (unionWithNullableMatch) {
               column.nullable = true
               nullable = true
-              currentType = (unionWithNullableMatch[1] || unionWithNullableMatch[2]).trim()
+              currentType = (
+                unionWithNullableMatch[1] || unionWithNullableMatch[2]
+              ).trim()
               continue
             }
 
-            const sizedMatch = currentType.match(this.SIZED_UTILITY_REGEX)
+            const sizedMatch = currentType.match(SIZED_UTILITY)
             if (sizedMatch) {
               break
             }
@@ -283,7 +269,6 @@ export class TypeScriptToSQLConverter {
               break
             }
 
-            // Process other type wrappers
             const generatedMatch = currentType.match(/^Generated<(.+)>$/)
             if (generatedMatch) {
               column.isGenerated = true
@@ -305,7 +290,6 @@ export class TypeScriptToSQLConverter {
               continue
             }
 
-            // Process Default type
             if (currentType.startsWith('Default<')) {
               let depth = 0
               let firstCommaIndex = -1
@@ -346,7 +330,6 @@ export class TypeScriptToSQLConverter {
 
           column.tsType = currentType
 
-          // Process ColumnType
           const columnTypeMatch = currentType.match(
             /^ColumnType<([^,]+),\s*([^,]+),\s*([^>]+)>$/,
           )
@@ -361,14 +344,11 @@ export class TypeScriptToSQLConverter {
             column.isUpdateable = updateType !== 'never'
 
             const selectNullable =
-              /\|\s*null\s*|\s*null\s*\|/.test(selectType) ||
-              selectType.trim() === 'null'
+              NULLABLE.test(selectType) || selectType.trim() === 'null'
             const insertNullable =
-              /\|\s*null\s*|\s*null\s*\|/.test(insertType) ||
-              insertType.trim() === 'null'
+              NULLABLE.test(insertType) || insertType.trim() === 'null'
             const updateNullable =
-              /\|\s*null\s*|\s*null\s*\|/.test(updateType) ||
-              updateType.trim() === 'null'
+              NULLABLE.test(updateType) || updateType.trim() === 'null'
 
             column.nullable = selectNullable || insertNullable || updateNullable
             nullable = column.nullable
@@ -388,10 +368,7 @@ export class TypeScriptToSQLConverter {
             }
           }
 
-          // Process Reference type
-          const referenceMatch = currentType.match(
-            /^Reference<([^,]+),\s*(['"]?)([^,'"]+)\2,\s*([^>]+)>$/,
-          )
+          const referenceMatch = currentType.match(REFERENCE_UTILITY)
           if (referenceMatch) {
             const referencedInterface = referenceMatch[1].trim()
             const referencedColumn = referenceMatch[3].trim()
@@ -414,7 +391,9 @@ export class TypeScriptToSQLConverter {
               )
             }
 
-            const tableName = this.getTableNameFromInterface(baseInterfaceName + 'Table')
+            const tableName = this.getTableNameFromInterface(
+              baseInterfaceName + 'Table',
+            )
             column.referencesTable = tableName
             column.referencesColumn = referencedColumn
             column.onDelete = 'no action'
@@ -604,18 +583,11 @@ export class TypeScriptToSQLConverter {
     this.collectIndexes(this.sourceFile)
     this.analyzeInterface(this.sourceFile)
 
-    this.databaseAdapter = DatabaseAdapterFactory.createAdapter(
-      this.databaseAdapter.constructor.name === 'PostgreSQLAdapter'
-        ? 'pgsql'
-        : this.databaseAdapter.constructor.name === 'MSSQLAdapter'
-          ? 'mssql'
-          : 'sqlite',
-      this.tables,
-    )
+    this.adapter = new this.adapterClass(this.tables)
 
     let sql = ''
 
-    const preamble = this.databaseAdapter.getPreamble()
+    const preamble = this.adapter.getPreamble()
     if (preamble) {
       sql += preamble + '\n'
     }
@@ -623,14 +595,12 @@ export class TypeScriptToSQLConverter {
     sql += '\n'
 
     for (const table of this.tables) {
-      sql += this.databaseAdapter.generateCreateTableStatement(table)
+      sql += this.adapter.generateCreateTableStatement(table)
       sql += '\n\n'
     }
 
     if (this.indexes.length > 0) {
-      const indexStatements = this.databaseAdapter.generateIndexStatements(
-        this.indexes,
-      )
+      const indexStatements = this.adapter.generateIndexStatements(this.indexes)
       for (const index of indexStatements) {
         sql += index
         sql += '\n'
@@ -640,8 +610,7 @@ export class TypeScriptToSQLConverter {
     sql += '\n'
 
     for (const table of this.tables) {
-      const constraints =
-        this.databaseAdapter.generateForeignKeyConstraints(table)
+      const constraints = this.adapter.generateForeignKeyConstraints(table)
       for (const constraint of constraints) {
         sql += constraint + '\n\n'
       }
@@ -651,27 +620,40 @@ export class TypeScriptToSQLConverter {
   }
 }
 
-// Convenience functions
-export function convertTSToSQL(
-  inputFile: string,
-  databaseType: DatabaseType = 'pgsql',
-): string {
-  const converter = new TypeScriptToSQLConverter({
-    filePath: inputFile,
-    databaseType,
-  })
-  return converter.convert()
+type CreateSQLSchemaFromFileOptions = {
+  filePath: string
+  fileName: string
+  dialect: DialectAdapterClass
 }
 
-export function convertSourceToSQL(
-  source: string,
-  fileName?: string,
-  databaseType: DatabaseType = 'pgsql',
-): string {
-  const converter = new TypeScriptToSQLConverter({
+export function createSQLSchemaFromFile({
+  filePath,
+  fileName,
+  dialect,
+}: CreateSQLSchemaFromFileOptions): string {
+  const kt = new KyselyTables({
+    filePath,
+    fileName,
+    dialect,
+  })
+  return kt.convert()
+}
+
+type CreateSQLSchemaFromSourceOptions = {
+  source: string
+  fileName: string
+  dialect: DialectAdapterClass
+}
+
+export function createSQLSchemaFromSource({
+  source,
+  fileName,
+  dialect,
+}: CreateSQLSchemaFromSourceOptions): string {
+  const kt = new KyselyTables({
     source,
     fileName,
-    databaseType,
+    dialect,
   })
-  return converter.convert()
+  return kt.convert()
 }

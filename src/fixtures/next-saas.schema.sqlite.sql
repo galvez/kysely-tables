@@ -1,23 +1,23 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS "users" (
-  "id" TEXT NOT NULL,
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   "name" VARCHAR(100),
-  "email" TEXT NOT NULL,
+  "email" VARCHAR(255) NOT NULL UNIQUE,
   "passwordHash" TEXT NOT NULL,
-  "role" TEXT NOT NULL,
-  "createdAt" TEXT NOT NULL,
-  "updatedAt" TEXT NOT NULL,
+  "role" TEXT DEFAULT 'member' NOT NULL,
+  "createdAt" TEXT DEFAULT (datetime('now')) NOT NULL,
+  "updatedAt" TEXT DEFAULT (datetime('now')) NOT NULL,
   "deletedAt" TEXT
 );
 
 CREATE TABLE IF NOT EXISTS "teams" (
   "id" INTEGER NOT NULL,
   "name" TEXT NOT NULL,
-  "createdAt" TEXT NOT NULL,
-  "updatedAt" TEXT NOT NULL,
-  "stripeCustomerId" TEXT NOT NULL,
-  "stripeSubscriptionId" TEXT NOT NULL,
+  "createdAt" TEXT DEFAULT (datetime('now')) NOT NULL,
+  "updatedAt" TEXT DEFAULT (datetime('now')) NOT NULL,
+  "stripeCustomerId" TEXT UNIQUE,
+  "stripeSubscriptionId" TEXT UNIQUE,
   "stripeProductId" TEXT,
   "planName" TEXT,
   "subscriptionStatus" TEXT
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS "invitations" (
   "email" TEXT NOT NULL,
   "role" TEXT NOT NULL,
   "invitedBy" INTEGER NOT NULL,
-  "invitedAt" TEXT NOT NULL,
+  "invitedAt" TEXT DEFAULT (datetime('now')) NOT NULL,
   "status" TEXT NOT NULL,
   FOREIGN KEY("teamId") REFERENCES "teams"("id"),
   FOREIGN KEY("invitedBy") REFERENCES "users"("id")

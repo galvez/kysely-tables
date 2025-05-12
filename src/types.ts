@@ -1,11 +1,30 @@
-export type DatabaseType = 'pgsql' | 'mssql' | 'sqlite'
+import PostgreSQLDialect from './dialects/pgsql'
+import SQLiteDialect from './dialects/sqlite'
 
-export interface ConverterOptions {
-  source?: string
-  filePath?: string
-  fileName?: string
-  databaseType?: DatabaseType
+export type Dialect = PostgreSQLDialect | SQLiteDialect
+
+export interface DialectAdapter {
+  convertTSTypeToSQL(tsType: string, nullable: boolean): string
+  generateCreateTableStatement(table: TableDefinition): string
+  generateIndexStatements(indexes: IndexDefinition[]): string[]
+  generateForeignKeyConstraints(table: TableDefinition): string[]
+  quoteIdentifier(identifier: string): string
+  supportsGeneratedColumns(): boolean
+  supportsCheckConstraints(): boolean
+  supportsPartialIndexes(): boolean
 }
+
+export type ConverterOptions =
+  | {
+      filePath: string
+      fileName: string
+      adapter: DialectAdapter
+    }
+  | {
+      source: string
+      fileName: string
+      adapter: DialectAdapter
+    }
 
 export interface ColumnDefinition {
   name: string
@@ -38,19 +57,18 @@ export interface IndexDefinition {
   }
 }
 
-// Type utilities
-export type Reference<Table, Column, KeyType> = KeyType
+export type Reference<_Table, _Column, T> = T
 export type Generated<T> = T
 export type ColumnType<
   SelectType,
-  InsertType = SelectType,
-  UpdateType = SelectType,
+  _InsertType = SelectType,
+  _UpdateType = SelectType,
 > = SelectType
 export type Unique<T> = T
-export type Default<T, V> = T
+export type Default<T, _V> = T
 export type Primary<T> = T
-export type Sized<T, Size extends number> = T
+export type Sized<T, _Size extends number> = T
 export type Text<T> = T
 export type Keys<T extends string[]> = T
-export type Index<Table, Columns> = Columns
-export type UniqueIndex<Table, Columns> = Columns
+export type Index<_Table, Columns> = Columns
+export type UniqueIndex<_Table, Columns> = Columns

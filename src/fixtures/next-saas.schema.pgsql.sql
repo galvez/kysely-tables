@@ -1,25 +1,28 @@
 
 CREATE TABLE IF NOT EXISTS "users" (
-  "id" text NOT NULL,
+  "id" serial PRIMARY KEY NOT NULL,
   "name" varchar(100),
-  "email" text NOT NULL,
+  "email" varchar(255) NOT NULL,
   "passwordHash" text NOT NULL,
-  "role" text NOT NULL,
-  "createdAt" text NOT NULL,
-  "updatedAt" text NOT NULL,
-  "deletedAt" timestamp
+  "role" varchar(255) DEFAULT 'member' NOT NULL,
+  "createdAt" timestamp DEFAULT now() NOT NULL,
+  "updatedAt" text DEFAULT now() NOT NULL,
+  "deletedAt" timestamp,
+  CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 
 CREATE TABLE IF NOT EXISTS "teams" (
   "id" integer NOT NULL,
   "name" varchar(255) NOT NULL,
-  "createdAt" text NOT NULL,
-  "updatedAt" text NOT NULL,
-  "stripeCustomerId" text NOT NULL,
-  "stripeSubscriptionId" text NOT NULL,
+  "createdAt" timestamp DEFAULT now() NOT NULL,
+  "updatedAt" timestamp DEFAULT now() NOT NULL,
+  "stripeCustomerId" varchar(255),
+  "stripeSubscriptionId" varchar(255),
   "stripeProductId" varchar(255),
   "planName" varchar(255),
-  "subscriptionStatus" varchar(255)
+  "subscriptionStatus" varchar(255),
+  CONSTRAINT "teams_stripe_customer_id_unique" UNIQUE("stripeCustomerId"),
+  CONSTRAINT "teams_stripe_subscription_id_unique" UNIQUE("stripeSubscriptionId")
 );
 
 CREATE TABLE IF NOT EXISTS "team_members" (
@@ -45,7 +48,7 @@ CREATE TABLE IF NOT EXISTS "invitations" (
   "email" varchar(255) NOT NULL,
   "role" varchar(255) NOT NULL,
   "invitedBy" integer NOT NULL,
-  "invitedAt" text NOT NULL,
+  "invitedAt" timestamp DEFAULT now() NOT NULL,
   "status" varchar(255) NOT NULL
 );
 

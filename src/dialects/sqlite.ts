@@ -1,8 +1,8 @@
-// src/adapters/sqlite-adapter.ts
-import { BaseDatabaseAdapter } from './base-adapter'
+import { snakeCase } from 'scule'
+import { BaseDialectAdapter } from './base'
 import { TableDefinition, IndexDefinition } from '../types'
 
-export class SQLiteAdapter extends BaseDatabaseAdapter {
+export class SQLiteDialect extends BaseDialectAdapter {
   constructor(tables: TableDefinition[]) {
     super(tables, 'sqlite')
   }
@@ -11,24 +11,21 @@ export class SQLiteAdapter extends BaseDatabaseAdapter {
     return 'PRAGMA foreign_keys = ON;'
   }
 
-  convertTSTypeToSQL(tsType: string, nullable: boolean): string {
+  convertTSTypeToSQL(tsType: string): string {
     let sqlType: string
 
     // SQLite has a simplified type system (TEXT, INTEGER, REAL, BLOB)
 
-    // Check for Text type
     const textMatch = tsType.match(/^Text<([^>]+)>$/)
     if (textMatch) {
       return 'TEXT'
     }
 
-    // Check for Sized type - SQLite doesn't enforce varchar size
     const sizedMatch = tsType.match(/^Sized<([^,]+),\s*(\d+)>$/)
     if (sizedMatch) {
       const underlyingType = sizedMatch[1].trim()
 
       if (underlyingType === 'string') {
-        // SQLite treats VARCHAR(n) the same as TEXT, but we'll include it for documentation
         const size = sizedMatch[2].trim()
         return `VARCHAR(${size})`
       }
@@ -43,13 +40,13 @@ export class SQLiteAdapter extends BaseDatabaseAdapter {
         sqlType = 'INTEGER'
         break
       case 'Date':
-        sqlType = 'TEXT' // SQLite stores dates as TEXT, REAL, or INTEGER
+        sqlType = 'TEXT'
         break
       case 'boolean':
-        sqlType = 'INTEGER' // SQLite uses INTEGER 0/1 for booleans
+        sqlType = 'INTEGER'
         break
       default:
-        if (tsType.startsWith('Pick<')) {
+        if (tsType.startsWith('JSONColumnType<')) {
           sqlType = 'TEXT' // SQLite doesn't have native JSON type
         } else {
           sqlType = 'TEXT'
@@ -68,13 +65,11 @@ export class SQLiteAdapter extends BaseDatabaseAdapter {
       let colDef = `  ${this.quoteIdentifier(column.name)} `
 
       if (column.isPrimaryKey && column.isGenerated) {
-        // SQLite uses INTEGER PRIMARY KEY AUTOINCREMENT for auto-increment
         colDef += 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
       } else {
         const sqlType = this.convertTSTypeToSQL(column.tsType, column.nullable)
         colDef += sqlType
 
-        // Add default value
         if (column.defaultValue) {
           if (column.defaultValue === 'now()') {
             colDef += " DEFAULT (datetime('now'))"
@@ -85,18 +80,15 @@ export class SQLiteAdapter extends BaseDatabaseAdapter {
           }
         }
 
-        // Add NOT NULL constraint
         if (!column.nullable) {
           colDef += ' NOT NULL'
         }
 
-        // Handle primary key for non-generated columns
         if (column.isPrimaryKey && !column.isGenerated) {
           colDef += ' PRIMARY KEY'
         }
       }
 
-      // Handle unique constraints
       if (column.isUnique && !column.isPrimaryKey) {
         colDef += ' UNIQUE'
       }
@@ -106,7 +98,6 @@ export class SQLiteAdapter extends BaseDatabaseAdapter {
 
     sql += columnDefinitions.join(',\n')
 
-    // Add foreign key constraints at table level with proper SQLite syntax
     const foreignKeys = this.generateTableLevelForeignKeys(table)
     if (foreignKeys.length > 0) {
       sql += ',\n' + foreignKeys.join(',\n')
@@ -123,7 +114,11 @@ export class SQLiteAdapter extends BaseDatabaseAdapter {
     for (const column of table.columns) {
       if (column.referencesTable && column.referencesColumn) {
         // Use simple SQLite syntax for foreign keys
-        let constraint = `  FOREIGN KEY(${this.quoteIdentifier(column.name)}) REFERENCES ${this.quoteIdentifier(column.referencesTable)}(${this.quoteIdentifier(column.referencesColumn)})`
+        let constraint = `  FOREIGN KEY(${this.quoteIdentifier(
+          column.name,
+        )}) REFERENCES ${this.quoteIdentifier(
+          column.referencesTable,
+        )}(${this.quoteIdentifier(column.referencesColumn)})`
 
         // Add referential actions if they're not the default
         const onDelete = this.convertSQLiteReferentialAction(
@@ -195,9 +190,7 @@ export class SQLiteAdapter extends BaseDatabaseAdapter {
         indexName = index.options.name
       } else {
         // Convert each column name to snake_case for the index name
-        const snakeCaseColumns = index.columns.map((col) =>
-          this.convertNameToSnakeCase(col),
-        )
+        const snakeCaseColumns = index.columns.map(snakeCase)
         indexName = `idx_${index.tableName}_${snakeCaseColumns.join('_')}`
       }
 
@@ -217,9 +210,9 @@ export class SQLiteAdapter extends BaseDatabaseAdapter {
     return indexStatements
   }
 
-  // SQLite foreign keys are defined at table creation time. This method returns 
+  // SQLite foreign keys are defined at table creation time. This method returns
   // an empty array since they're handled in generateCreateTableStatement().
-  generateForeignKeyConstraints(table: TableDefinition): string[] {
+  generateForeignKeyConstraints(_table: TableDefinition): string[] {
     return []
   }
 

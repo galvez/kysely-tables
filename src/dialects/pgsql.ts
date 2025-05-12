@@ -1,8 +1,8 @@
-import { BaseDatabaseAdapter } from './base-adapter'
+import { snakeCase } from 'scule'
+import { BaseDialectAdapter } from './base'
 import { TableDefinition, IndexDefinition } from '../types'
 
-// PostgreSQL adapter implementation
-export class PostgreSQLAdapter extends BaseDatabaseAdapter {
+export class PostgreSQLDialect extends BaseDialectAdapter {
   constructor(tables: TableDefinition[]) {
     super(tables, 'postgresql')
   }
@@ -11,16 +11,14 @@ export class PostgreSQLAdapter extends BaseDatabaseAdapter {
     return ''
   }
 
-  convertTSTypeToSQL(tsType: string, nullable: boolean): string {
+  convertTSTypeToSQL(tsType: string): string {
     let sqlType: string
 
-    // Check for Text type
     const textMatch = tsType.match(/^Text<([^>]+)>$/)
     if (textMatch) {
       return 'text'
     }
 
-    // Check for Sized type
     const sizedMatch = tsType.match(/^Sized<([^,]+),\s*(\d+)>$/)
     if (sizedMatch) {
       const underlyingType = sizedMatch[1].trim()
@@ -80,7 +78,6 @@ export class PostgreSQLAdapter extends BaseDatabaseAdapter {
           }
         }
 
-        // Add NOT NULL after default
         if (!column.nullable) {
           colDef += ' NOT NULL'
         }
@@ -90,12 +87,12 @@ export class PostgreSQLAdapter extends BaseDatabaseAdapter {
         }
       }
 
-      // Handle unique constraints separately
       if (column.isUnique && !column.isPrimaryKey) {
-        const snakeCaseColumnName = this.convertNameToSnakeCase(column.name)
-        constraints.push(
-          `  CONSTRAINT ${this.quoteIdentifier(`${table.name}_${snakeCaseColumnName}_unique`)} UNIQUE(${this.quoteIdentifier(column.name)})`,
-        )
+        constraints.push(`  CONSTRAINT ${
+          this.quoteIdentifier(`${table.name}_${snakeCase(column.name)}_unique`)
+        } UNIQUE(${
+          this.quoteIdentifier(column.name)
+        })`)
       }
 
       columnDefinitions.push(colDef)
@@ -140,10 +137,7 @@ export class PostgreSQLAdapter extends BaseDatabaseAdapter {
       if (index.options?.name) {
         indexName = index.options.name
       } else {
-        // Convert each column name to snake_case for the index name
-        const snakeCaseColumns = index.columns.map((col) =>
-          this.convertNameToSnakeCase(col),
-        )
+        const snakeCaseColumns = index.columns.map(snakeCase)
         indexName = `idx_${index.tableName}_${snakeCaseColumns.join('_')}`
       }
 
@@ -167,13 +161,18 @@ export class PostgreSQLAdapter extends BaseDatabaseAdapter {
 
     for (const column of table.columns) {
       if (column.referencesTable && column.referencesColumn) {
-        // Convert column names and table names to snake_case for constraint names
-        const snakeCaseColumnName = this.convertNameToSnakeCase(column.name)
-        const snakeCaseReferencedColumn = this.convertNameToSnakeCase(
-          column.referencesColumn,
-        )
+        const snakeCaseColumnName = snakeCase(column.name)
+        const snakeCaseReferencedColumn = snakeCase(column.referencesColumn)
 
-        const constraintName = `${table.name}_${snakeCaseColumnName}_${column.referencesTable}_${snakeCaseReferencedColumn}_fk`
+        const constraintName = `${
+          table.name
+        }_${
+          snakeCaseColumnName
+        }_${
+          column.referencesTable
+        }_${
+          snakeCaseReferencedColumn
+        }_fk`
         const onDelete = column.onDelete || 'no action'
         const onUpdate = column.onUpdate || 'no action'
 
