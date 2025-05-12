@@ -1,3 +1,3 @@
 export { BaseDialect } from './base.js'
-export { PostgreSQLDialect } from './pgsql.js'
-export { SQLiteDialect } from './sqlite.js'
+export { PostgresDialect } from './pgsql.js'
+export { SqliteDialect } from './sqlite.js'

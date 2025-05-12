@@ -423,23 +423,23 @@ export class KyselyTables {
       this.extractIndexesFromType(node.type)
     }
 
-    if (ts.isVariableStatement(node)) {
-      const isExported = node.modifiers?.some(
-        (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
-      )
-      if (!isExported) return
+    // if (ts.isVariableStatement(node)) {
+    //   const isExported = node.modifiers?.some(
+    //     (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+    //   )
+    //   if (!isExported) return
 
-      for (const declaration of node.declarationList.declarations) {
-        if (
-          ts.isIdentifier(declaration.name) &&
-          declaration.name.text === 'indexes'
-        ) {
-          if (ts.isArrayLiteralExpression(declaration.initializer)) {
-            this.extractIndexArray(declaration.initializer)
-          }
-        }
-      }
-    }
+    //   for (const declaration of node.declarationList.declarations) {
+    //     if (
+    //       ts.isIdentifier(declaration.name) &&
+    //       declaration.name.text === 'indexes'
+    //     ) {
+    //       if (ts.isArrayLiteralExpression(declaration.initializer)) {
+    //         this.extractIndexArray(declaration.initializer)
+    //       }
+    //     }
+    //   }
+    // }
 
     ts.forEachChild(node, this.collectIndexes.bind(this))
   }
@@ -521,61 +521,61 @@ export class KyselyTables {
     return []
   }
 
-  private extractIndexArray(arrayLiteral: ts.ArrayLiteralExpression): void {
-    for (const element of arrayLiteral.elements) {
-      if (
-        ts.isCallExpression(element) &&
-        ts.isIdentifier(element.expression) &&
-        element.expression.text === 'Index'
-      ) {
-        const args = element.arguments
-        if (args.length >= 2) {
-          const tableNameArg = args[0]
-          let tableName = ''
-          if (ts.isStringLiteral(tableNameArg)) {
-            tableName = tableNameArg.text
-          }
+  // private extractIndexArray(arrayLiteral: ts.ArrayLiteralExpression): void {
+  //   for (const element of arrayLiteral.elements) {
+  //     if (
+  //       ts.isCallExpression(element) &&
+  //       ts.isIdentifier(element.expression) &&
+  //       element.expression.text === 'Index'
+  //     ) {
+  //       const args = element.arguments
+  //       if (args.length >= 2) {
+  //         const tableNameArg = args[0]
+  //         let tableName = ''
+  //         if (ts.isStringLiteral(tableNameArg)) {
+  //           tableName = tableNameArg.text
+  //         }
 
-          const columnsArg = args[1]
-          let columns: string[] = []
-          if (ts.isArrayLiteralExpression(columnsArg)) {
-            columns = columnsArg.elements
-              .map((col) => {
-                if (ts.isStringLiteral(col)) {
-                  return col.text
-                }
-                return ''
-              })
-              .filter(Boolean)
-          }
+  //         const columnsArg = args[1]
+  //         let columns: string[] = []
+  //         if (ts.isArrayLiteralExpression(columnsArg)) {
+  //           columns = columnsArg.elements
+  //             .map((col) => {
+  //               if (ts.isStringLiteral(col)) {
+  //                 return col.text
+  //               }
+  //               return ''
+  //             })
+  //             .filter(Boolean)
+  //         }
 
-          let options: { unique?: boolean; name?: string } | undefined
-          if (args.length >= 3 && ts.isObjectLiteralExpression(args[2])) {
-            options = {}
-            for (const prop of args[2].properties) {
-              if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
-                if (
-                  prop.name.text === 'unique' &&
-                  ts.isTrue(prop.initializer)
-                ) {
-                  options.unique = true
-                } else if (
-                  prop.name.text === 'name' &&
-                  ts.isStringLiteral(prop.initializer)
-                ) {
-                  options.name = prop.initializer.text
-                }
-              }
-            }
-          }
+  //         let options: { unique?: boolean; name?: string } | undefined
+  //         if (args.length >= 3 && ts.isObjectLiteralExpression(args[2])) {
+  //           options = {}
+  //           for (const prop of args[2].properties) {
+  //             if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
+  //               if (
+  //                 prop.name.text === 'unique' &&
+  //                 ts.isTrue(prop.initializer)
+  //               ) {
+  //                 options.unique = true
+  //               } else if (
+  //                 prop.name.text === 'name' &&
+  //                 ts.isStringLiteral(prop.initializer)
+  //               ) {
+  //                 options.name = prop.initializer.text
+  //               }
+  //             }
+  //           }
+  //         }
 
-          if (tableName && columns.length > 0) {
-            this.indexes.push({ tableName, columns, options })
-          }
-        }
-      }
-    }
-  }
+  //         if (tableName && columns.length > 0) {
+  //           this.indexes.push({ tableName, columns, options })
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   // Main conversion method in src/converter.ts
   convert(): string {

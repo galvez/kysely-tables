@@ -2,11 +2,7 @@ import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
 import { TableDefinition, IndexDefinition } from '../types'
 
-export class PostgreSQLDialect extends BaseDialect {
-  constructor(tables: TableDefinition[]) {
-    super(tables, 'postgresql')
-  }
-
+export class PostgresDialect extends BaseDialect {
   buildPreamble(): string {
     return ''
   }
@@ -66,7 +62,7 @@ export class PostgreSQLDialect extends BaseDialect {
       if (column.isPrimaryKey && column.isGenerated) {
         colDef += 'serial PRIMARY KEY NOT NULL'
       } else {
-        const sqlType = this.buildColumn(column.tsType, column.nullable)
+        const sqlType = this.buildColumn(column.tsType)
         colDef += sqlType
 
         if (column.defaultValue) {

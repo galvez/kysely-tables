@@ -1,11 +1,17 @@
 export {
-  TypeScriptToSQLConverter,
+  KyselyTables,
   createSQLSchemaFromSource,
   createSQLSchemaFromFile,
 } from './ktables'
 
+export {
+  PostgresDialect,
+  SqliteDialect,
+} from './dialects'
+
 export type {
-  DatabaseType,
+  Dialect,
+  DialectAdapter,
   ColumnDefinition,
   TableDefinition,
   IndexDefinition,
@@ -25,9 +31,3 @@ export type {
   Index,
   UniqueIndex,
 } from './types'
-
-export {
-  DialectAdapterFactory,
-  PostgreSQLDialect,
-  SQLiteDialect,
-} from './dialects'

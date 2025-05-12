@@ -2,11 +2,7 @@ import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
 import { TableDefinition, IndexDefinition } from '../types'
 
-export class SQLiteDialect extends BaseDialect {
-  constructor(tables: TableDefinition[]) {
-    super(tables, 'sqlite')
-  }
-
+export class SqliteDialect extends BaseDialect {
   buildPreamble(): string {
     return 'PRAGMA foreign_keys = ON;'
   }
@@ -66,7 +62,7 @@ export class SQLiteDialect extends BaseDialect {
       if (column.isPrimaryKey && column.isGenerated) {
         colDef += 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
       } else {
-        const sqlType = this.buildColumn(column.tsType, column.nullable)
+        const sqlType = this.buildColumn(column.tsType)
         colDef += sqlType
 
         if (column.defaultValue) {

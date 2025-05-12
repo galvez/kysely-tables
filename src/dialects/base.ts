@@ -1,16 +1,19 @@
-import type { Dialect, DialectAdapter, TableDefinition } from '../types'
+import { 
+  Dialect, 
+  DialectAdapter, 
+  TableDefinition,
+  IndexDefinition
+} from '../types'
 
 export abstract class BaseDialect implements DialectAdapter {
   tables: TableDefinition[]
-  dialect: Dialect
 
   constructor(tables: TableDefinition[], dialect: Dialect) {
     this.tables = tables
-    this.dialect = dialect
   }
 
   abstract buildPreamble(): string
-  abstract buildColumn(tsType: string, nullable: boolean): string
+  abstract buildColumn(tsType: string): string
   abstract buildTable(table: TableDefinition): string
   abstract buildIndexes(indexes: IndexDefinition[]): string[]
   abstract buildReferences(table: TableDefinition): string[]

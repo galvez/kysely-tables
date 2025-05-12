@@ -18,7 +18,7 @@ export interface UsersTable {
   passwordHash: Text<string>
   role: Default<string, 'member'>
   createdAt: Default<Date, 'now()'>
-  updatedAt: Default<Data, 'now()'>
+  updatedAt: Default<Date, 'now()'>
   deletedAt: null | Date
 }
 
@@ -61,7 +61,7 @@ export interface InvitationsTable {
   status: string
 }
 
-export type Indexes = UniqueIndex<TeamMembersTable, Keys<'teamId', 'userId'>>
+export type Indexes = UniqueIndex<TeamMembersTable, Keys<['teamId', 'userId']>>
 
 export enum ActivityType {
   SIGN_UP = 'SIGN_UP',

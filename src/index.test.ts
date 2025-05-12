@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
   createSQLSchemaFromSource,
-  PostgreSQLDialect,
-  SQLiteDialect,
+  PostgresDialect,
+  SqliteDialect,
 } from './index'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -17,11 +17,11 @@ test("compatibility with Kysely's type utilities", () => {
 
   const outputs = [
     [
-      PostgreSQLDialect,
+      PostgresDialect,
       join(__dirname, 'fixtures', 'kysely-compat.schema.pgsql.sql'),
     ],
     [
-      SQLiteDialect,
+      SqliteDialect,
       join(__dirname, 'fixtures', 'kysely-compat.schema.sqlite.sql'),
     ],
   ]
@@ -33,7 +33,7 @@ test("compatibility with Kysely's type utilities", () => {
       dialect,
     })
     // writeFileSync(outputPath, output)
-    ok(output === readFileSync(outputPath, 'utf8'))
+    ok(output === readFileSync(outputPath as string, 'utf8'))
   }
 })
 
@@ -43,10 +43,10 @@ test('official SaaS Starter from Next.js', () => {
 
   const outputs = [
     [
-      PostgreSQLDialect,
+      PostgresDialect,
       join(__dirname, 'fixtures', 'next-saas.schema.pgsql.sql'),
     ],
-    [SQLiteDialect, join(__dirname, 'fixtures', 'next-saas.schema.sqlite.sql')],
+    [SqliteDialect, join(__dirname, 'fixtures', 'next-saas.schema.sqlite.sql')],
   ]
 
   for (const [dialect, outputPath] of outputs) {
@@ -56,6 +56,6 @@ test('official SaaS Starter from Next.js', () => {
       dialect,
     })
     // writeFileSync(outputPath, output)
-    ok(output === readFileSync(outputPath, 'utf8'))
+    ok(output === readFileSync(outputPath as string, 'utf8'))
   }
 })

@@ -1,27 +1,22 @@
-import PostgreSQLDialect from './dialects/pgsql'
-import SQLiteDialect from './dialects/sqlite'
+import { PostgresDialect } from './dialects/pgsql'
+import { SqliteDialect } from './dialects/sqlite'
 
-export type Dialect = PostgreSQLDialect | SQLiteDialect
+export type Dialect = PostgresDialect | SqliteDialect
 
 export interface DialectAdapter {
   buildPreamble(): string
   buildColumn(tsType: string): string
-  buildTable(table: Table): string
-  buildIndexes(indexes: Index[]): string[]
-  buildReferences(table: Table): string[]
+  buildTable(table: TableDefinition): string
+  buildIndexes(indexes: IndexDefinition[]): string[]
+  buildReferences(table: TableDefinition): string[]
 }
 
-export type ConverterOptions =
-  | {
-      filePath: string
-      fileName: string
-      adapter: DialectAdapter
-    }
-  | {
-      source: string
-      fileName: string
-      adapter: DialectAdapter
-    }
+export type ConverterOptions = {
+  source?: string
+  filePath?: string
+  fileName: string
+  dialect: DialectAdapter
+}
 
 export interface ColumnDefinition {
   name: string
@@ -45,7 +40,7 @@ export interface TableDefinition {
   columns: ColumnDefinition[]
 }
 
-export interface IndexIndefinition {
+export interface IndexDefinition {
   tableName: string
   columns: string[]
   options?: {
