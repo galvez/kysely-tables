@@ -7,9 +7,30 @@ Give [Kysely]() the same level of DX from [Prisma]() and [Drizzle]().
 
 - Use your Kysely types to do your migrations, very much like Prisma and Drizze — change your types and the bundled CLI will generate SQL migrations using Postgrator under the hood. Postgrator is a lean and well tested library used by Platformatic.
 
+<br>
+
 ### Using your Kysely types as your database schema
 
-1. Create a `db/schema.ts` file as follows:
+Create a `db/manager.ts` file as follows:
+
+```ts
+import { Pool } from 'pg'
+import { Kysely, PostgresDialect } from 'kysely'
+import { Manager } from 'kysely-tables'
+import { Database } from './schema'
+
+const dialect = new PostgresDialect({
+  pool: new Pool()
+})
+
+export const db = new Kysely<Database>({
+  dialect,
+})
+
+export default new Manager()
+```
+
+Create a `db/schema.ts` file as follows:
 
 ```ts
 import { Generated, Insertable, Selectable, Updateable } from 'kysely'
@@ -37,16 +58,10 @@ export type UpdateUser = Updateable<UsersTable>
 export default createRunner()
 ```
 
-2. The `createRunner()` default export turns your file into a CLI. To create `schema.sql`:
+Run the following command to create `schema.sql` and apply it to the database.
 
 ```sh
-% tsx db/schema.ts --create
-```
-
-To create `schema.sql` and run it on the database:
-
-```sh
-% tsx db/schema.ts --create --apply
+% tsx db/manager.ts --apply
 ```
 
 This is what the generated SQL schema looks like:
@@ -64,15 +79,3 @@ CREATE TABLE IF NOT EXISTS "users" (
   CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 ```
-</td>
-
-
-</tr>
-  
-</table>
-
-</td>
-
-</tr>
-  
-</table>
