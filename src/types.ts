@@ -4,14 +4,11 @@ import SQLiteDialect from './dialects/sqlite'
 export type Dialect = PostgreSQLDialect | SQLiteDialect
 
 export interface DialectAdapter {
-  convertTSTypeToSQL(tsType: string, nullable: boolean): string
-  generateCreateTableStatement(table: TableDefinition): string
-  generateIndexStatements(indexes: IndexDefinition[]): string[]
-  generateForeignKeyConstraints(table: TableDefinition): string[]
-  quoteIdentifier(identifier: string): string
-  supportsGeneratedColumns(): boolean
-  supportsCheckConstraints(): boolean
-  supportsPartialIndexes(): boolean
+  buildPreamble(): string
+  buildColumn(tsType: string): string
+  buildTable(table: Table): string
+  buildIndexes(indexes: Index[]): string[]
+  buildReferences(table: Table): string[]
 }
 
 export type ConverterOptions =
@@ -48,7 +45,7 @@ export interface TableDefinition {
   columns: ColumnDefinition[]
 }
 
-export interface IndexDefinition {
+export interface IndexIndefinition {
   tableName: string
   columns: string[]
   options?: {

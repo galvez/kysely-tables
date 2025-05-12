@@ -7,11 +7,11 @@ export class PostgreSQLDialect extends BaseDialectAdapter {
     super(tables, 'postgresql')
   }
 
-  getPreamble(): string {
+  buildPreamble(): string {
     return ''
   }
 
-  convertTSTypeToSQL(tsType: string): string {
+  buildColumn(tsType: string): string {
     let sqlType: string
 
     const textMatch = tsType.match(/^Text<([^>]+)>$/)
@@ -44,8 +44,8 @@ export class PostgreSQLDialect extends BaseDialectAdapter {
         sqlType = 'boolean'
         break
       default:
-        if (tsType.startsWith('Pick<')) {
-          sqlType = 'json'
+        if (tsType.startsWith('JSONColumnType<')) {
+          sqlType = 'jsonb'
         } else {
           sqlType = 'text'
         }
@@ -54,22 +54,21 @@ export class PostgreSQLDialect extends BaseDialectAdapter {
     return sqlType
   }
 
-  generateCreateTableStatement(table: TableDefinition): string {
-    let sql = `CREATE TABLE IF NOT EXISTS ${this.quoteIdentifier(table.name)} (\n`
+  buildTable(table: TableDefinition): string {
+    let sql = `CREATE TABLE IF NOT EXISTS "${table.name}" (\n`
 
     const columnDefinitions: string[] = []
     const constraints: string[] = []
 
     for (const column of table.columns) {
-      let colDef = `  ${this.quoteIdentifier(column.name)} `
+      let colDef = `  "${column.name}" `
 
       if (column.isPrimaryKey && column.isGenerated) {
         colDef += 'serial PRIMARY KEY NOT NULL'
       } else {
-        const sqlType = this.convertTSTypeToSQL(column.tsType, column.nullable)
+        const sqlType = this.buildColumn(column.tsType, column.nullable)
         colDef += sqlType
 
-        // Add default value before NOT NULL
         if (column.defaultValue) {
           if (column.defaultValue === 'CURRENT_TIMESTAMP') {
             colDef += ' DEFAULT now()'
@@ -88,11 +87,9 @@ export class PostgreSQLDialect extends BaseDialectAdapter {
       }
 
       if (column.isUnique && !column.isPrimaryKey) {
-        constraints.push(`  CONSTRAINT ${
-          this.quoteIdentifier(`${table.name}_${snakeCase(column.name)}_unique`)
-        } UNIQUE(${
-          this.quoteIdentifier(column.name)
-        })`)
+        constraints.push(
+          `  CONSTRAINT "${`${table.name}_${snakeCase(column.name)}_unique`}" UNIQUE("${column.name}")`,
+        )
       }
 
       columnDefinitions.push(colDef)
@@ -109,25 +106,27 @@ export class PostgreSQLDialect extends BaseDialectAdapter {
     return sql
   }
 
-  generateIndexStatements(indexes: IndexDefinition[]): string[] {
+  buildIndexes(indexes: IndexDefinition[]): string[] {
     const indexStatements: string[] = []
     const indexSignatures = new Set<string>()
 
     for (const index of indexes) {
-      // Create a unique signature for this index
       const signature = `${index.tableName}:${index.columns.join(',')}`
 
-      // Check for duplicates
       if (indexSignatures.has(signature)) {
         throw new Error(
-          `Duplicate index detected: An index on table "${index.tableName}" with columns [${index.columns.join(', ')}] has been defined multiple times.`,
+          `Duplicate index detected: An index on table "${
+            index.tableName
+          }" with columns [${index.columns.join(
+            ', ',
+          )}] has been defined multiple times.`,
         )
       }
 
       indexSignatures.add(signature)
 
-      // Validate table and columns exist
       this.validateTableExists(index.tableName)
+
       for (const column of index.columns) {
         this.validateColumnExists(index.tableName, column)
       }
@@ -144,19 +143,19 @@ export class PostgreSQLDialect extends BaseDialectAdapter {
       const indexType = index.options?.unique
         ? 'CREATE UNIQUE INDEX'
         : 'CREATE INDEX'
-      const columns = index.columns
-        .map((col) => this.quoteIdentifier(col))
-        .join(', ')
+      const columns = index.columns.map((col) => `"${col}"`).join(', ')
 
       indexStatements.push(
-        `${indexType} ${this.quoteIdentifier(indexName)} ON ${this.quoteIdentifier(index.tableName)}(${columns});`,
+        `${indexType} "${
+          indexName
+        }" ON "${index.tableName}"(${columns});`,
       )
     }
 
     return indexStatements
   }
 
-  generateForeignKeyConstraints(table: TableDefinition): string[] {
+  buildReferences(table: TableDefinition): string[] {
     const constraints: string[] = []
 
     for (const column of table.columns) {
@@ -164,43 +163,24 @@ export class PostgreSQLDialect extends BaseDialectAdapter {
         const snakeCaseColumnName = snakeCase(column.name)
         const snakeCaseReferencedColumn = snakeCase(column.referencesColumn)
 
-        const constraintName = `${
-          table.name
-        }_${
-          snakeCaseColumnName
-        }_${
+        const constraintName = `${table.name}_${snakeCaseColumnName}_${
           column.referencesTable
-        }_${
-          snakeCaseReferencedColumn
-        }_fk`
+        }_${snakeCaseReferencedColumn}_fk`
         const onDelete = column.onDelete || 'no action'
         const onUpdate = column.onUpdate || 'no action'
 
-        constraints.push(`DO $$ BEGIN
- ALTER TABLE ${this.quoteIdentifier(table.name)} ADD CONSTRAINT ${this.quoteIdentifier(constraintName)}\n FOREIGN KEY (${this.quoteIdentifier(column.name)}) REFERENCES "public".${this.quoteIdentifier(column.referencesTable)}(${this.quoteIdentifier(column.referencesColumn)}) ON DELETE ${onDelete} ON UPDATE ${onUpdate};
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;`)
+        constraints.push(
+          `DO $$ BEGIN\n ALTER TABLE "${table.name}" ADD CONSTRAINT "${
+            constraintName
+          }"\n FOREIGN KEY ("${column.name}") REFERENCES "public"."${
+            column.referencesTable
+          }"("${column.referencesColumn}") ON DELETE ${onDelete} ON UPDATE ${
+            onUpdate
+          };\nEXCEPTION\n WHEN duplicate_object THEN null;\nEND $$;`,
+        )
       }
     }
 
     return constraints
-  }
-
-  quoteIdentifier(identifier: string): string {
-    // PostgreSQL uses double quotes for identifiers
-    return `"${identifier}"`
-  }
-
-  supportsGeneratedColumns(): boolean {
-    return true // PostgreSQL 12+ supports generated columns
-  }
-
-  supportsCheckConstraints(): boolean {
-    return true
-  }
-
-  supportsPartialIndexes(): boolean {
-    return true
   }
 }

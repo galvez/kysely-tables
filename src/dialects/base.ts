@@ -9,15 +9,10 @@ export abstract class BaseDialectAdapter implements DialectAdapter {
     this.dialect = dialect
   }
 
-  abstract convertTSTypeToSQL(tsType: string, nullable: boolean): string
-  abstract generateCreateTableStatement(table: TableDefinition): string
-  abstract generateIndexStatements(indexes: IndexDefinition[]): string[]
-  abstract generateForeignKeyConstraints(table: TableDefinition): string[]
-  abstract quoteIdentifier(identifier: string): string
-  abstract getStatementSeparator(): string
-  abstract supportsGeneratedColumns(): boolean
-  abstract supportsCheckConstraints(): boolean
-  abstract supportsPartialIndexes(): boolean
+  abstract buildColumn(tsType: string, nullable: boolean): string
+  abstract buildTable(table: TableDefinition): string
+  abstract buildIndexes(indexes: IndexDefinition[]): string[]
+  abstract buildReferences(table: TableDefinition): string[]
 
   protected validateTableExists(tableName: string): void {
     const table = this.tables.find((t) => t.name === tableName)

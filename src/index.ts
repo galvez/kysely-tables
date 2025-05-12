@@ -2,7 +2,7 @@ export {
   TypeScriptToSQLConverter,
   createSQLSchemaFromSource,
   createSQLSchemaFromFile,
-} from './converter'
+} from './ktables'
 
 export type {
   DatabaseType,

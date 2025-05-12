@@ -7,14 +7,12 @@ export class SQLiteDialect extends BaseDialectAdapter {
     super(tables, 'sqlite')
   }
 
-  getPreamble(): string {
+  buildPreamble(): string {
     return 'PRAGMA foreign_keys = ON;'
   }
 
-  convertTSTypeToSQL(tsType: string): string {
+  buildColumn(tsType: string): string {
     let sqlType: string
-
-    // SQLite has a simplified type system (TEXT, INTEGER, REAL, BLOB)
 
     const textMatch = tsType.match(/^Text<([^>]+)>$/)
     if (textMatch) {
@@ -47,7 +45,8 @@ export class SQLiteDialect extends BaseDialectAdapter {
         break
       default:
         if (tsType.startsWith('JSONColumnType<')) {
-          sqlType = 'TEXT' // SQLite doesn't have native JSON type
+          // Keeping this here in case SQLite ever gets JSON type
+          sqlType = 'TEXT'
         } else {
           sqlType = 'TEXT'
         }
@@ -56,18 +55,18 @@ export class SQLiteDialect extends BaseDialectAdapter {
     return sqlType
   }
 
-  generateCreateTableStatement(table: TableDefinition): string {
-    let sql = `CREATE TABLE IF NOT EXISTS ${this.quoteIdentifier(table.name)} (\n`
+  buildTable(table: TableDefinition): string {
+    let sql = `CREATE TABLE IF NOT EXISTS "${table.name}" (\n`
 
     const columnDefinitions: string[] = []
 
     for (const column of table.columns) {
-      let colDef = `  ${this.quoteIdentifier(column.name)} `
+      let colDef = `  "${column.name}" `
 
       if (column.isPrimaryKey && column.isGenerated) {
         colDef += 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
       } else {
-        const sqlType = this.convertTSTypeToSQL(column.tsType, column.nullable)
+        const sqlType = this.buildColumn(column.tsType, column.nullable)
         colDef += sqlType
 
         if (column.defaultValue) {
@@ -98,7 +97,7 @@ export class SQLiteDialect extends BaseDialectAdapter {
 
     sql += columnDefinitions.join(',\n')
 
-    const foreignKeys = this.generateTableLevelForeignKeys(table)
+    const foreignKeys = this.buildTableLevelReferences(table)
     if (foreignKeys.length > 0) {
       sql += ',\n' + foreignKeys.join(',\n')
     }
@@ -108,17 +107,15 @@ export class SQLiteDialect extends BaseDialectAdapter {
     return sql
   }
 
-  private generateTableLevelForeignKeys(table: TableDefinition): string[] {
+  private buildTableLevelReferences(table: TableDefinition): string[] {
     const constraints: string[] = []
 
     for (const column of table.columns) {
       if (column.referencesTable && column.referencesColumn) {
         // Use simple SQLite syntax for foreign keys
-        let constraint = `  FOREIGN KEY(${this.quoteIdentifier(
-          column.name,
-        )}) REFERENCES ${this.quoteIdentifier(
-          column.referencesTable,
-        )}(${this.quoteIdentifier(column.referencesColumn)})`
+        let constraint = `  FOREIGN KEY("${column.name}") REFERENCES "${
+          column.referencesTable
+        }"("${column.referencesColumn}")`
 
         // Add referential actions if they're not the default
         const onDelete = this.convertSQLiteReferentialAction(
@@ -144,7 +141,6 @@ export class SQLiteDialect extends BaseDialectAdapter {
   }
 
   private convertSQLiteReferentialAction(action: string): string {
-    // SQLite supports most referential actions
     switch (action.toUpperCase()) {
       case 'NO ACTION':
         return 'NO ACTION'
@@ -161,7 +157,8 @@ export class SQLiteDialect extends BaseDialectAdapter {
     }
   }
 
-  generateIndexStatements(indexes: IndexDefinition[]): string[] {
+
+  buildIndexes(indexes: IndexDefinition[]): string[] {
     const indexStatements: string[] = []
     const indexSignatures = new Set<string>()
 
@@ -172,13 +169,16 @@ export class SQLiteDialect extends BaseDialectAdapter {
       // Check for duplicates
       if (indexSignatures.has(signature)) {
         throw new Error(
-          `Duplicate index detected: An index on table "${index.tableName}" with columns [${index.columns.join(', ')}] has been defined multiple times.`,
+          `Duplicate index detected: An index on table "${
+            index.tableName
+          }" with columns [${
+            index.columns.join(', ')
+          }] has been defined multiple times.`,
         )
       }
 
       indexSignatures.add(signature)
 
-      // Validate table and columns exist
       this.validateTableExists(index.tableName)
       for (const column of index.columns) {
         this.validateColumnExists(index.tableName, column)
@@ -189,7 +189,6 @@ export class SQLiteDialect extends BaseDialectAdapter {
       if (index.options?.name) {
         indexName = index.options.name
       } else {
-        // Convert each column name to snake_case for the index name
         const snakeCaseColumns = index.columns.map(snakeCase)
         indexName = `idx_${index.tableName}_${snakeCaseColumns.join('_')}`
       }
@@ -198,41 +197,22 @@ export class SQLiteDialect extends BaseDialectAdapter {
         ? 'CREATE UNIQUE INDEX'
         : 'CREATE INDEX'
       const columns = index.columns
-        .map((col) => this.quoteIdentifier(col))
+        .map((col) => `"${col}"`)
         .join(', ')
 
-      // SQLite doesn't have IF NOT EXISTS for indexes, so we need to check differently
-      indexStatements.push(
-        `${indexType} IF NOT EXISTS ${this.quoteIdentifier(indexName)} ON ${this.quoteIdentifier(index.tableName)} (${columns});`,
-      )
+      indexStatements.push(`${
+        indexType
+      } IF NOT EXISTS "${
+        indexName
+      }" ON "${
+        index.tableName
+      }" (${columns});`)
     }
 
     return indexStatements
   }
 
-  // SQLite foreign keys are defined at table creation time. This method returns
-  // an empty array since they're handled in generateCreateTableStatement().
-  generateForeignKeyConstraints(_table: TableDefinition): string[] {
+  buildReferences(table: TableDefinition): string[] {
     return []
-  }
-
-  quoteIdentifier(identifier: string): string {
-    return `"${identifier}"`
-  }
-
-  getStatementSeparator(): string {
-    return ';'
-  }
-
-  supportsGeneratedColumns(): boolean {
-    return false
-  }
-
-  supportsCheckConstraints(): boolean {
-    return true
-  }
-
-  supportsPartialIndexes(): boolean {
-    return true
   }
 }

@@ -4,8 +4,8 @@ import { basename } from 'node:path'
 import { snakeCase } from 'scule'
 
 import {
+  Dialect,
   DialectAdapter,
-  DialectAdapterClass,
   ConverterOptions,
   TableDefinition,
   ColumnDefinition,
@@ -26,12 +26,12 @@ export class KyselyTables {
   private tableInterfaces: Set<string>
   private indexes: IndexDefinition[] = []
   private adapter: DialectAdapter
-  private adapterClass: DialectAdapterClass
+  private dialect: Dialect
 
   constructor(options: ConverterOptions) {
     this.tables = []
     this.tableInterfaces = new Set()
-    this.adapterClass = options.dialect
+    this.dialect = options.dialect
 
     let sourceCode: string
     let fileName: string
@@ -583,11 +583,11 @@ export class KyselyTables {
     this.collectIndexes(this.sourceFile)
     this.analyzeInterface(this.sourceFile)
 
-    this.adapter = new this.adapterClass(this.tables)
+    this.adapter = new this.dialect(this.tables)
 
     let sql = ''
 
-    const preamble = this.adapter.getPreamble()
+    const preamble = this.adapter.buildPreamble()
     if (preamble) {
       sql += preamble + '\n'
     }
@@ -595,24 +595,21 @@ export class KyselyTables {
     sql += '\n'
 
     for (const table of this.tables) {
-      sql += this.adapter.generateCreateTableStatement(table)
+      sql += this.adapter.buildTable(table)
       sql += '\n\n'
     }
 
     if (this.indexes.length > 0) {
-      const indexStatements = this.adapter.generateIndexStatements(this.indexes)
-      for (const index of indexStatements) {
-        sql += index
-        sql += '\n'
+      for (const index of this.adapter.buildIndexes(this.indexes)) {
+        sql += `${index}\n`
       }
     }
 
     sql += '\n'
 
     for (const table of this.tables) {
-      const constraints = this.adapter.generateForeignKeyConstraints(table)
-      for (const constraint of constraints) {
-        sql += constraint + '\n\n'
+      for (const constraint of this.adapter.buildReferences(table)) {
+        sql += `${constraint}\n\n`
       }
     }
 
@@ -623,7 +620,7 @@ export class KyselyTables {
 type CreateSQLSchemaFromFileOptions = {
   filePath: string
   fileName: string
-  dialect: DialectAdapterClass
+  dialect: Dialect
 }
 
 export function createSQLSchemaFromFile({
@@ -642,7 +639,7 @@ export function createSQLSchemaFromFile({
 type CreateSQLSchemaFromSourceOptions = {
   source: string
   fileName: string
-  dialect: DialectAdapterClass
+  dialect: Dialect
 }
 
 export function createSQLSchemaFromSource({
