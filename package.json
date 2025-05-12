@@ -1,0 +1,34 @@
+{
+  "name": "kysely-tables",
+  "description": "WIP",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "scripts": {
+    "format": "prettier -w --no-semi --single-quote --bracket-same-line .",
+    "lint": "oxlint . && pnpm format",
+    "test": "tsx src/index.test.ts"
+  },
+  "keywords": [
+    "typescript",
+    "kysely",
+    "sql",
+    "converter",
+    "database",
+    "schema"
+  ],
+  "author": "Jonas Galvez <jonasgalvez@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "kysely": "^0.28.2",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "oxlint": "^0.16.10",
+    "prettier": "^3.5.3",
+    "tsx": "^4.19.4"
+  },
+  "files": [
+    "src/dummy.ts"
+  ]
+}
