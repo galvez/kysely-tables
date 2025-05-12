@@ -412,7 +412,6 @@ export class KyselyTables {
     ts.forEachChild(node, this.analyzeInterface.bind(this))
   }
 
-  // Method to collect indexes
   private collectIndexes(node: ts.Node): void {
     if (ts.isTypeAliasDeclaration(node) && node.name.text === 'Indexes') {
       const isExported = node.modifiers?.some(
@@ -577,7 +576,6 @@ export class KyselyTables {
   //   }
   // }
 
-  // Main conversion method in src/converter.ts
   convert(): string {
     this.collectTableInterfaces(this.sourceFile)
     this.collectIndexes(this.sourceFile)

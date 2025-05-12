@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
+    "@types/pg": "^8.15.1",
     "oxlint": "^0.16.10",
     "pg": "^8.15.6",
     "prettier": "^3.5.3",
