@@ -2,41 +2,54 @@
 
 Give [Kysely]() the same level of DX from [Prisma]() and [Drizzle]().
 
-- Use your Kysely types as your database schema — no need to use kysely-codegen and connect to the database to retrieve the schema structure. This **will parse your Kysely types** and turn them into the proper `CREATE TABLE` statements.
+- Use your Kysely types as your database schema — no need to use kysely-codegen and connect to the database to retrieve the schema structure. No need to use [this](https://github.com/drizzle-team/drizzle-kysely), or [this](https://github.com/eoin-obrien/prisma-extension-kysely), or [this](https://github.com/valtyr/prisma-kysely) and bloat your setup with redundant libraries.
+  - This **will parse your Kysely types** and turn them into the proper `CREATE TABLE` statements.
 
-- Use your Kysely types to do your migrations, very much like Prisma and Drizze — change your types and the bundled CLI will generate SQL migrations using Postgrator under the hood. Postgrator is the same database migration library used by Platformatic.
+- Use your Kysely types to do your migrations, very much like Prisma and Drizze — change your types and the bundled CLI will generate SQL migrations using Postgrator under the hood. Postgrator is a lean and well tested library used by Platformatic.
 
-<br>
+### Using your Kysely types as your database schema
 
-### 1. Use your Kysely types as your database schema
-
-<table>
-
-<tr>
-
-<td valign=top width="400px">
-
-**Kysely TypeScript Schema**
+1. Create a `db/schema.ts` file as follows:
 
 ```ts
+import { Generated, Insertable, Selectable, Updateable } from 'kysely'
+import { Unique, Default, Primary, Text, Sized, createRunner } from 'kysely-tables'
+
 export interface UsersTable {
   id: Generated<Primary<number>>
   name: Sized<string, 100> | null
   email: Unique<Sized<string, 255>>
   passwordHash: Text<string>
-  role: Default<string, 'member'>
+  role: Default<string, "'member'">
   createdAt: Default<Date, 'now()'>
-  updatedAt: Default<Date, 'now()'>
+  updatedAt: Default<Data, 'now()'>
   deletedAt: null | Date
 }
+
+export interface Database {
+  users: UsersTable
+}
+
+export type User = Selectable<UsersTable>
+export type CreateUser = Insertable<UsersTable>
+export type UpdateUser = Updateable<UsersTable>
+
+export default createRunner()
 ```
 
-</td>
+2. The `createRunner()` default export turns your file into a CLI. To create `schema.sql`:
 
+```sh
+% tsx db/schema.ts --create
+```
 
-<td valign=top>
+To create `schema.sql` and run it on the database:
 
-**SQL Schema**
+```sh
+% tsx db/schema.ts --create --apply
+```
+
+This is what the generated SQL schema looks like:
 
 ```sql
 CREATE TABLE IF NOT EXISTS "users" (
