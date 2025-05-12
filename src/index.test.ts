@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
+  Dialect,
   createSQLSchemaFromSource,
   PostgresDialect,
   SqliteDialect,
@@ -30,7 +31,7 @@ test("compatibility with Kysely's type utilities", () => {
     const output = createSQLSchemaFromSource({
       source,
       fileName: 'schema.ts',
-      dialect,
+      dialect: dialect as Dialect,
     })
     // writeFileSync(outputPath, output)
     ok(output === readFileSync(outputPath as string, 'utf8'))
@@ -53,7 +54,7 @@ test('official SaaS Starter from Next.js', () => {
     const output = createSQLSchemaFromSource({
       source,
       fileName: 'schema.ts',
-      dialect,
+      dialect: dialect as Dialect,
     })
     // writeFileSync(outputPath, output)
     ok(output === readFileSync(outputPath as string, 'utf8'))

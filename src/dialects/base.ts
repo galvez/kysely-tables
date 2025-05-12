@@ -8,7 +8,7 @@ import {
 export abstract class BaseDialect implements DialectAdapter {
   tables: TableDefinition[]
 
-  constructor(tables: TableDefinition[], dialect: Dialect) {
+  constructor(tables: TableDefinition[]) {
     this.tables = tables
   }
 
