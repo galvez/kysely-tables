@@ -1,8 +1,8 @@
 import { snakeCase } from 'scule'
-import { BaseDialectAdapter } from './base'
+import { BaseDialect } from './base'
 import { TableDefinition, IndexDefinition } from '../types'
 
-export class SQLiteDialect extends BaseDialectAdapter {
+export class SQLiteDialect extends BaseDialect {
   constructor(tables: TableDefinition[]) {
     super(tables, 'sqlite')
   }
@@ -112,12 +112,10 @@ export class SQLiteDialect extends BaseDialectAdapter {
 
     for (const column of table.columns) {
       if (column.referencesTable && column.referencesColumn) {
-        // Use simple SQLite syntax for foreign keys
         let constraint = `  FOREIGN KEY("${column.name}") REFERENCES "${
           column.referencesTable
         }"("${column.referencesColumn}")`
 
-        // Add referential actions if they're not the default
         const onDelete = this.convertSQLiteReferentialAction(
           column.onDelete || 'no action',
         )
@@ -157,23 +155,20 @@ export class SQLiteDialect extends BaseDialectAdapter {
     }
   }
 
-
   buildIndexes(indexes: IndexDefinition[]): string[] {
     const indexStatements: string[] = []
     const indexSignatures = new Set<string>()
 
     for (const index of indexes) {
-      // Create a unique signature for this index
       const signature = `${index.tableName}:${index.columns.join(',')}`
 
-      // Check for duplicates
       if (indexSignatures.has(signature)) {
         throw new Error(
           `Duplicate index detected: An index on table "${
             index.tableName
-          }" with columns [${
-            index.columns.join(', ')
-          }] has been defined multiple times.`,
+          }" with columns [${index.columns.join(
+            ', ',
+          )}] has been defined multiple times.`,
         )
       }
 
@@ -196,23 +191,19 @@ export class SQLiteDialect extends BaseDialectAdapter {
       const indexType = index.options?.unique
         ? 'CREATE UNIQUE INDEX'
         : 'CREATE INDEX'
-      const columns = index.columns
-        .map((col) => `"${col}"`)
-        .join(', ')
+      const columns = index.columns.map((col) => `"${col}"`).join(', ')
 
-      indexStatements.push(`${
-        indexType
-      } IF NOT EXISTS "${
-        indexName
-      }" ON "${
-        index.tableName
-      }" (${columns});`)
+      indexStatements.push(
+        `${indexType} IF NOT EXISTS "${indexName}" ON "${
+          index.tableName
+        }" (${columns});`,
+      )
     }
 
     return indexStatements
   }
 
-  buildReferences(table: TableDefinition): string[] {
+  buildReferences(_table: TableDefinition): string[] {
     return []
   }
 }

@@ -1,6 +1,6 @@
 import type { Dialect, DialectAdapter, TableDefinition } from '../types'
 
-export abstract class BaseDialectAdapter implements DialectAdapter {
+export abstract class BaseDialect implements DialectAdapter {
   tables: TableDefinition[]
   dialect: Dialect
 
@@ -9,6 +9,7 @@ export abstract class BaseDialectAdapter implements DialectAdapter {
     this.dialect = dialect
   }
 
+  abstract buildPreamble(): string
   abstract buildColumn(tsType: string, nullable: boolean): string
   abstract buildTable(table: TableDefinition): string
   abstract buildIndexes(indexes: IndexDefinition[]): string[]

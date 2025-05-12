@@ -1,8 +1,8 @@
 import { snakeCase } from 'scule'
-import { BaseDialectAdapter } from './base'
+import { BaseDialect } from './base'
 import { TableDefinition, IndexDefinition } from '../types'
 
-export class PostgreSQLDialect extends BaseDialectAdapter {
+export class PostgreSQLDialect extends BaseDialect {
   constructor(tables: TableDefinition[]) {
     super(tables, 'postgresql')
   }
@@ -146,9 +146,7 @@ export class PostgreSQLDialect extends BaseDialectAdapter {
       const columns = index.columns.map((col) => `"${col}"`).join(', ')
 
       indexStatements.push(
-        `${indexType} "${
-          indexName
-        }" ON "${index.tableName}"(${columns});`,
+        `${indexType} "${indexName}" ON "${index.tableName}"(${columns});`,
       )
     }
 
