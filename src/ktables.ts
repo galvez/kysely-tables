@@ -2,6 +2,7 @@ import * as ts from 'typescript'
 import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { snakeCase } from 'scule'
+import { extractNullableType } from './tree'
 
 import {
   Dialect,
@@ -16,8 +17,6 @@ import {
   REFERENCE_UTILITY,
   SIZED_UTILITY,
   NULLABLE,
-  UNION_WITH_NULL,
-  UNION_WITH_UNDEFINED,
 } from './regex'
 
 export class KyselyTables {
@@ -218,7 +217,7 @@ export class KyselyTables {
           const columnName = member.name.text
 
           let type: string
-          let nullable = member.questionToken !== undefined
+          let nullable
 
           if (member.type) {
             type = this.#extractTypeString(member.type)
@@ -240,16 +239,11 @@ export class KyselyTables {
           while (currentType && !processedTypes.has(currentType)) {
             processedTypes.add(currentType)
 
-            const unionWithNullableMatch =
-              currentType.match(UNION_WITH_NULL) ??
-              currentType.match(UNION_WITH_UNDEFINED)
-
-            if (unionWithNullableMatch) {
+            const nullableType = extractNullableType(currentType)
+            if (nullableType) {
               column.nullable = true
               nullable = true
-              currentType = (
-                unionWithNullableMatch[1] || unionWithNullableMatch[2]
-              ).trim()
+              currentType = nullableType
               continue
             }
 
