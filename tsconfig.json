@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "strict": true,
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
@@ -8,5 +9,5 @@
     "paths": {
       "kysely-tables": ["./src/index"]
     }
-  },
+  }
 }

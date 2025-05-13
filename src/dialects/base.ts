@@ -1,8 +1,8 @@
-import { 
-  Dialect, 
-  DialectAdapter, 
+import {
+  Dialect,
+  DialectAdapter,
   TableDefinition,
-  IndexDefinition
+  IndexDefinition,
 } from '../types'
 
 export abstract class BaseDialect implements DialectAdapter {

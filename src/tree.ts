@@ -6,10 +6,10 @@ export function extractNullableType(typeString: string): boolean {
     '#fragment',
     `type T = ${typeString};`,
     ts.ScriptTarget.Latest,
-    true
+    true,
   )
 
-  let nullableType
+  let nullableType: string | undefined
 
   ts.forEachChild(sourceFile, (node: ts.Node) => {
     if (ts.isTypeAliasDeclaration(node)) {
@@ -19,29 +19,67 @@ export function extractNullableType(typeString: string): boolean {
         }
         for (const t of node.type.types) {
           if (
-            (
-              t.kind === ts.SyntaxKind.NullKeyword || 
-              t.kind === ts.SyntaxKind.UndefinedKeyword
-            ) || (
-              t.kind === ts.SyntaxKind.LiteralType && (
-                t.literal.kind === ts.SyntaxKind.NullKeyword || 
-                t.literal.kind === ts.SyntaxKind.UndefinedKeyword
-                )
-            )) {
+            t.kind === ts.SyntaxKind.NullKeyword ||
+            t.kind === ts.SyntaxKind.UndefinedKeyword ||
+            (t.kind === ts.SyntaxKind.LiteralType &&
+              (t.literal.kind === ts.SyntaxKind.NullKeyword ||
+                t.literal.kind === ts.SyntaxKind.UndefinedKeyword))
+          ) {
             continue
           }
           nullableType = t.getText()
         }
-      }    
+      }
     }
   })
   return nullableType
 }
 
-ok(extractNullableType('Date | undefined') === 'Date')
+if (process.stdout.isTTY) {
+  ok(extractNullableType('Date | undefined') === 'Date')
+  ok(extractNullableType('null | string') === 'string')
+  ok(typeof extractNullableType('null | string | Foobar') === 'undefined')
+  ok(typeof extractNullableType('null | Date | string') === 'undefined')
+}
 
-ok(extractNullableType('null | string') === 'string')
+export function extractDefaultType(typeString: string): {
+  type: string
+  defaultValue: string | null
+} {
+  const sourceFile = ts.createSourceFile(
+    '#fragment',
+    `type T = ${typeString};`,
+    ts.ScriptTarget.Latest,
+    true,
+  )
 
-ok(typeof extractNullableType('null | string | Foobar') === 'undefined')
+  let typeWithDefault: string | null = null
+  let defaultValue: string | null = null
 
-ok(typeof extractNullableType('null | Date | string') === 'undefined')
+  ts.forEachChild(sourceFile, (node: ts.Node) => {
+    if (ts.isTypeAliasDeclaration(node)) {
+      if (
+        ts.isTypeReferenceNode(node.type) &&
+        node.type.typeName.getText() === 'Default' &&
+        node.type.typeArguments.length === 2
+      ) {
+        typeWithDefault = node.type.typeArguments[0].getText()
+        const defaultArg = node.type.typeArguments[1]
+
+        if (
+          ts.isLiteralTypeNode(defaultArg) &&
+          ts.isStringLiteral(defaultArg.literal)
+        ) {
+          defaultValue = defaultArg.literal.text
+        } else {
+          defaultValue = `'${defaultArg.getText()}'`
+        }
+      }
+    }
+  })
+
+  return {
+    type: typeWithDefault ?? typeString,
+    defaultValue,
+  }
+}

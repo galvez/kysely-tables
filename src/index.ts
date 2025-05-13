@@ -4,10 +4,7 @@ export {
   createSQLSchemaFromFile,
 } from './ktables'
 
-export {
-  PostgresDialect,
-  SqliteDialect,
-} from './dialects'
+export { PostgresDialect, SqliteDialect } from './dialects'
 
 export type {
   Dialect,

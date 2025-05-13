@@ -1,9 +1,9 @@
 import { PostgresDialect } from './dialects/pgsql'
 import { SqliteDialect } from './dialects/sqlite'
 
-export type Dialect = 
- | (new (tables: TableDefinition[]) => PostgresDialect)
- | (new (tables: TableDefinition[]) => SqliteDialect)
+export type Dialect =
+  | (new (tables: TableDefinition[]) => PostgresDialect)
+  | (new (tables: TableDefinition[]) => SqliteDialect)
 
 export interface DialectAdapter {
   buildPreamble(): string

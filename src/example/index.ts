@@ -3,7 +3,7 @@ import { Kysely, PostgresDialect } from 'kysely'
 import { Database } from './types'
 
 const dialect = new PostgresDialect({
-  pool: new Pool()
+  pool: new Pool(),
 })
 
 export const db = new Kysely<Database>({
@@ -11,10 +11,7 @@ export const db = new Kysely<Database>({
 })
 
 export function findUserById(id: number) {
-  return db.selectFrom('users')
-    .where('id', '=', id)
-    .selectAll()
-    .compile()
+  return db.selectFrom('users').where('id', '=', id).selectAll().compile()
 }
 
 console.log(findUserById(1))

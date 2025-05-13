@@ -2,7 +2,7 @@ import * as ts from 'typescript'
 import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { snakeCase } from 'scule'
-import { extractNullableType } from './tree'
+import { extractNullableType, extractDefaultType } from './tree'
 
 import {
   Dialect,
@@ -13,11 +13,7 @@ import {
   IndexDefinition,
 } from './types'
 
-import {
-  REFERENCE_UTILITY,
-  SIZED_UTILITY,
-  NULLABLE,
-} from './regex'
+import { REFERENCE_UTILITY, SIZED_UTILITY, NULLABLE } from './regex'
 
 export class KyselyTables {
   private sourceFile: ts.SourceFile
@@ -103,7 +99,9 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 1
       ) {
-        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(
+          typeNode.typeArguments[0],
+        )
         return `Generated<${underlyingType}>`
       }
 
@@ -112,7 +110,9 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 1
       ) {
-        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(
+          typeNode.typeArguments[0],
+        )
         return `Unique<${underlyingType}>`
       }
 
@@ -121,7 +121,9 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 1
       ) {
-        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(
+          typeNode.typeArguments[0],
+        )
         return `Primary<${underlyingType}>`
       }
 
@@ -130,7 +132,9 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 2
       ) {
-        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(
+          typeNode.typeArguments[0],
+        )
         const defaultValue = this.#extractTypeString(typeNode.typeArguments[1])
         return `Default<${underlyingType}, ${defaultValue}>`
       }
@@ -140,7 +144,9 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 2
       ) {
-        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(
+          typeNode.typeArguments[0],
+        )
         const size = this.#extractTypeString(typeNode.typeArguments[1])
         return `Sized<${underlyingType}, ${size}>`
       }
@@ -150,7 +156,9 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 1
       ) {
-        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(
+          typeNode.typeArguments[0],
+        )
         return `Text<${underlyingType}>`
       }
 
@@ -278,41 +286,11 @@ export class KyselyTables {
               continue
             }
 
-            if (currentType.startsWith('Default<')) {
-              let depth = 0
-              let firstCommaIndex = -1
-
-              for (let i = 0; i < currentType.length; i++) {
-                if (currentType[i] === '<') {
-                  depth++
-                }
-                else if (currentType[i] === '>') depth--
-                else if (currentType[i] === ',' && depth === 1) {
-                  firstCommaIndex = i
-                  break
-                }
-              }
-
-              if (firstCommaIndex !== -1) {
-                const innerPart = currentType.slice(8, firstCommaIndex).trim()
-                const remainder = currentType
-                  .slice(firstCommaIndex + 1, -1)
-                  .trim()
-
-                const defaultMatch = remainder.match(/['"](.+?)['"]/)
-                const defaultValue = defaultMatch
-                  ? defaultMatch[1]
-                  : remainder.trim()
-
-                if (defaultValue === 'now()') {
-                  column.defaultValue = 'now()'
-                } else {
-                  column.defaultValue = `'${defaultValue}'`
-                }
-
-                currentType = innerPart
-                continue
-              }
+            const { type, defaultValue } = extractDefaultType(currentType)
+            if (defaultValue) {
+              column.defaultValue = defaultValue
+              currentType = type
+              continue
             }
 
             break
@@ -320,43 +298,43 @@ export class KyselyTables {
 
           column.tsType = currentType
 
-          const columnTypeMatch = currentType.match(
-            /^ColumnType<([^,]+),\s*([^,]+),\s*([^>]+)>$/,
-          )
-          if (columnTypeMatch) {
-            const selectType = columnTypeMatch[1].trim()
-            const insertType = columnTypeMatch[2].trim()
-            const updateType = columnTypeMatch[3].trim()
+          // const columnTypeMatch = currentType.match(
+          //   /^ColumnType<([^,]+),\s*([^,]+),\s*([^>]+)>$/,
+          // )
+          // if (columnTypeMatch) {
+          //   const selectType = columnTypeMatch[1].trim()
+          //   const insertType = columnTypeMatch[2].trim()
+          //   const updateType = columnTypeMatch[3].trim()
 
-            column.tsType = selectType
-            column.insertType = insertType
-            column.updateType = updateType
-            column.isUpdateable = updateType !== 'never'
+          //   column.tsType = selectType
+          //   column.insertType = insertType
+          //   column.updateType = updateType
+          //   column.isUpdateable = updateType !== 'never'
 
-            const selectNullable =
-              NULLABLE.test(selectType) ?? selectType.trim() === 'null'
-            const insertNullable =
-              NULLABLE.test(insertType) ?? insertType.trim() === 'null'
-            const updateNullable =
-              NULLABLE.test(updateType) ?? updateType.trim() === 'null'
+          //   const selectNullable =
+          //     NULLABLE.test(selectType) ?? selectType.trim() === 'null'
+          //   const insertNullable =
+          //     NULLABLE.test(insertType) ?? insertType.trim() === 'null'
+          //   const updateNullable =
+          //     NULLABLE.test(updateType) ?? updateType.trim() === 'null'
 
-            column.nullable = selectNullable || insertNullable || updateNullable
-            nullable = column.nullable
+          //   column.nullable = selectNullable || insertNullable || updateNullable
+          //   nullable = column.nullable
 
-            if (selectNullable) {
-              if (selectType.trim() === 'null') {
-                column.tsType = 'string'
-              } else {
-                column.tsType = selectType
-                  .replace(/\|\s*null\s*|\s*null\s*\|/g, '')
-                  .trim()
-                column.tsType = column.tsType
-                  .replace(/\|\s*\|/g, '|')
-                  .replace(/^\||\|$/g, '')
-                  .trim()
-              }
-            }
-          }
+          //   if (selectNullable) {
+          //     if (selectType.trim() === 'null') {
+          //       column.tsType = 'string'
+          //     } else {
+          //       column.tsType = selectType
+          //         .replace(/\|\s*null\s*|\s*null\s*\|/g, '')
+          //         .trim()
+          //       column.tsType = column.tsType
+          //         .replace(/\|\s*\|/g, '|')
+          //         .replace(/^\||\|$/g, '')
+          //         .trim()
+          //     }
+          //   }
+          // }
 
           const referenceMatch = currentType.match(REFERENCE_UTILITY)
           if (referenceMatch) {
@@ -407,7 +385,9 @@ export class KyselyTables {
       const isExported = node.modifiers?.some(
         (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
       )
-      if (!isExported) return
+      if (!isExported) {
+        return
+      }
 
       this.#extractIndexesFromType(node.type)
     }
