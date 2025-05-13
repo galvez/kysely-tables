@@ -12,7 +12,7 @@ export const db = new Kysely<Database>({
 
 export function findUserById(id: number) {
   return db.selectFrom('users')
-    .where('users.role', '=', id)
+    .where('id', '=', id)
     .selectAll()
     .compile()
 }

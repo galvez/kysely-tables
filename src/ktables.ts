@@ -66,21 +66,19 @@ export class KyselyTables {
     )
   }
 
-  private collectTableInterfaces(node: ts.Node): void {
+  #registerTables(node: ts.Node): void {
     if (ts.isInterfaceDeclaration(node)) {
       const interfaceName = node.name.text
-
       if (interfaceName.endsWith('Table')) {
         this.tableInterfaces.add(interfaceName.replace(/Table$/, ''))
       }
     }
-
-    ts.forEachChild(node, this.collectTableInterfaces.bind(this))
+    ts.forEachChild(node, this.#registerTables.bind(this))
   }
 
-  private extractTypeString(typeNode: ts.TypeNode): string {
+  #extractTypeString(typeNode: ts.TypeNode): string {
     if (ts.isUnionTypeNode(typeNode)) {
-      return typeNode.types.map((t) => this.extractTypeString(t)).join(' | ')
+      return typeNode.types.map((t) => this.#extractTypeString(t)).join(' | ')
     }
 
     if (ts.isTypeReferenceNode(typeNode)) {
@@ -91,13 +89,13 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 3
       ) {
-        const referencedTable = this.extractTypeString(
+        const referencedTable = this.#extractTypeString(
           typeNode.typeArguments[0],
         )
-        const referencedColumn = this.extractTypeString(
+        const referencedColumn = this.#extractTypeString(
           typeNode.typeArguments[1],
         )
-        const keyType = this.extractTypeString(typeNode.typeArguments[2])
+        const keyType = this.#extractTypeString(typeNode.typeArguments[2])
         return `Reference<${referencedTable}, ${referencedColumn}, ${keyType}>`
       }
 
@@ -106,7 +104,7 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 1
       ) {
-        const underlyingType = this.extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
         return `Generated<${underlyingType}>`
       }
 
@@ -115,7 +113,7 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 1
       ) {
-        const underlyingType = this.extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
         return `Unique<${underlyingType}>`
       }
 
@@ -124,7 +122,7 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 1
       ) {
-        const underlyingType = this.extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
         return `Primary<${underlyingType}>`
       }
 
@@ -133,8 +131,8 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 2
       ) {
-        const underlyingType = this.extractTypeString(typeNode.typeArguments[0])
-        const defaultValue = this.extractTypeString(typeNode.typeArguments[1])
+        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
+        const defaultValue = this.#extractTypeString(typeNode.typeArguments[1])
         return `Default<${underlyingType}, ${defaultValue}>`
       }
 
@@ -143,8 +141,8 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 2
       ) {
-        const underlyingType = this.extractTypeString(typeNode.typeArguments[0])
-        const size = this.extractTypeString(typeNode.typeArguments[1])
+        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
+        const size = this.#extractTypeString(typeNode.typeArguments[1])
         return `Sized<${underlyingType}, ${size}>`
       }
 
@@ -153,7 +151,7 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 1
       ) {
-        const underlyingType = this.extractTypeString(typeNode.typeArguments[0])
+        const underlyingType = this.#extractTypeString(typeNode.typeArguments[0])
         return `Text<${underlyingType}>`
       }
 
@@ -162,14 +160,14 @@ export class KyselyTables {
         typeNode.typeArguments &&
         typeNode.typeArguments.length >= 1
       ) {
-        const selectType = this.extractTypeString(typeNode.typeArguments[0])
+        const selectType = this.#extractTypeString(typeNode.typeArguments[0])
         const insertType =
           typeNode.typeArguments.length >= 2
-            ? this.extractTypeString(typeNode.typeArguments[1])
+            ? this.#extractTypeString(typeNode.typeArguments[1])
             : selectType
         const updateType =
           typeNode.typeArguments.length >= 3
-            ? this.extractTypeString(typeNode.typeArguments[2])
+            ? this.#extractTypeString(typeNode.typeArguments[2])
             : selectType
         return `ColumnType<${selectType}, ${insertType}, ${updateType}>`
       }
@@ -195,12 +193,12 @@ export class KyselyTables {
     }
   }
 
-  private getTableNameFromInterface(interfaceName: string): string {
+  #getTableNameFromInterface(interfaceName: string): string {
     const withoutSuffix = interfaceName.replace(/Table$/, '')
     return snakeCase(withoutSuffix)
   }
 
-  private analyzeInterface(node: ts.Node): void {
+  #registerTableColumns(node: ts.Node): void {
     if (ts.isInterfaceDeclaration(node)) {
       const interfaceName = node.name.text
 
@@ -208,7 +206,7 @@ export class KyselyTables {
         return
       }
 
-      const tableName = this.getTableNameFromInterface(interfaceName)
+      const tableName = this.#getTableNameFromInterface(interfaceName)
       const columns: ColumnDefinition[] = []
 
       for (const member of node.members) {
@@ -223,9 +221,7 @@ export class KyselyTables {
           let nullable = member.questionToken !== undefined
 
           if (member.type) {
-            type = this.extractTypeString(member.type)
-          } else {
-            type = 'any'
+            type = this.#extractTypeString(member.type)
           }
 
           if (!type) {
@@ -238,14 +234,12 @@ export class KyselyTables {
             nullable,
           }
 
-          // Process nested type helpers
           let currentType = type
           let processedTypes = new Set<string>()
 
           while (currentType && !processedTypes.has(currentType)) {
             processedTypes.add(currentType)
 
-            // Null and undefined
             const unionWithNullableMatch =
               currentType.match(UNION_WITH_NULL) ??
               currentType.match(UNION_WITH_UNDEFINED)
@@ -295,7 +289,9 @@ export class KyselyTables {
               let firstCommaIndex = -1
 
               for (let i = 0; i < currentType.length; i++) {
-                if (currentType[i] === '<') depth++
+                if (currentType[i] === '<') {
+                  depth++
+                }
                 else if (currentType[i] === '>') depth--
                 else if (currentType[i] === ',' && depth === 1) {
                   firstCommaIndex = i
@@ -344,11 +340,11 @@ export class KyselyTables {
             column.isUpdateable = updateType !== 'never'
 
             const selectNullable =
-              NULLABLE.test(selectType) || selectType.trim() === 'null'
+              NULLABLE.test(selectType) ?? selectType.trim() === 'null'
             const insertNullable =
-              NULLABLE.test(insertType) || insertType.trim() === 'null'
+              NULLABLE.test(insertType) ?? insertType.trim() === 'null'
             const updateNullable =
-              NULLABLE.test(updateType) || updateType.trim() === 'null'
+              NULLABLE.test(updateType) ?? updateType.trim() === 'null'
 
             column.nullable = selectNullable || insertNullable || updateNullable
             nullable = column.nullable
@@ -391,7 +387,7 @@ export class KyselyTables {
               )
             }
 
-            const tableName = this.getTableNameFromInterface(
+            const tableName = this.#getTableNameFromInterface(
               baseInterfaceName + 'Table',
             )
             column.referencesTable = tableName
@@ -409,17 +405,17 @@ export class KyselyTables {
       this.tables.push({ name: tableName, columns })
     }
 
-    ts.forEachChild(node, this.analyzeInterface.bind(this))
+    ts.forEachChild(node, this.#registerTableColumns.bind(this))
   }
 
-  private collectIndexes(node: ts.Node): void {
+  #registerIndexes(node: ts.Node): void {
     if (ts.isTypeAliasDeclaration(node) && node.name.text === 'Indexes') {
       const isExported = node.modifiers?.some(
         (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
       )
       if (!isExported) return
 
-      this.extractIndexesFromType(node.type)
+      this.#extractIndexesFromType(node.type)
     }
 
     // if (ts.isVariableStatement(node)) {
@@ -440,20 +436,20 @@ export class KyselyTables {
     //   }
     // }
 
-    ts.forEachChild(node, this.collectIndexes.bind(this))
+    ts.forEachChild(node, this.#registerIndexes.bind(this))
   }
 
-  private extractIndexesFromType(typeNode: ts.TypeNode): void {
+  #extractIndexesFromType(typeNode: ts.TypeNode): void {
     if (ts.isIntersectionTypeNode(typeNode)) {
       for (const type of typeNode.types) {
-        this.extractSingleIndex(type)
+        this.#extractSingleIndex(type)
       }
     } else {
-      this.extractSingleIndex(typeNode)
+      this.#extractSingleIndex(typeNode)
     }
   }
 
-  private extractSingleIndex(typeNode: ts.TypeNode): void {
+  #extractSingleIndex(typeNode: ts.TypeNode): void {
     if (
       ts.isTypeReferenceNode(typeNode) &&
       ts.isIdentifier(typeNode.typeName)
@@ -469,11 +465,11 @@ export class KyselyTables {
             ts.isTypeReferenceNode(tableType) &&
             ts.isIdentifier(tableType.typeName)
           ) {
-            tableName = this.getTableNameFromInterface(tableType.typeName.text)
+            tableName = this.#getTableNameFromInterface(tableType.typeName.text)
           }
 
           const columnsType = typeNode.typeArguments[1]
-          const columns = this.extractKeysFromType(columnsType)
+          const columns = this.#extractKeysFromType(columnsType)
 
           if (tableName && columns.length > 0) {
             const options =
@@ -485,7 +481,7 @@ export class KyselyTables {
     }
   }
 
-  private extractKeysFromType(typeNode: ts.TypeNode): string[] {
+  #extractKeysFromType(typeNode: ts.TypeNode): string[] {
     if (
       ts.isTypeReferenceNode(typeNode) &&
       ts.isIdentifier(typeNode.typeName) &&
@@ -577,9 +573,9 @@ export class KyselyTables {
   // }
 
   convert(): string {
-    this.collectTableInterfaces(this.sourceFile)
-    this.collectIndexes(this.sourceFile)
-    this.analyzeInterface(this.sourceFile)
+    this.#registerTables(this.sourceFile)
+    this.#registerTableColumns(this.sourceFile)
+    this.#registerIndexes(this.sourceFile)
 
     this.adapter = new this.dialect(this.tables)
 
