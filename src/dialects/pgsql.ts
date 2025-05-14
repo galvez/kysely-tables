@@ -10,11 +10,13 @@ export class PostgresDialect extends BaseDialect {
   buildColumn(tsType: string): string {
     let sqlType: string
 
+    // TODO refactor to src/tree.ts using AST
     const textMatch = tsType.match(/^Text<([^>]+)>$/)
     if (textMatch) {
       return 'text'
     }
 
+    // TODO refactor to src/tree.ts using AST
     const sizedMatch = tsType.match(/^Sized<([^,]+),\s*(\d+)>$/)
     if (sizedMatch) {
       const underlyingType = sizedMatch[1].trim()
