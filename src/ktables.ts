@@ -8,7 +8,10 @@ import {
   extractNormalizedTypeString,
   extractNullableType, 
   extractDefaultType,
-  extractColumnType
+  extractColumnType,
+  extractReferenceType,
+  extractKeysFromType,
+  extractIndexArray
 } from './tree'
 
 import {
@@ -20,7 +23,7 @@ import {
   IndexDefinition,
 } from './types'
 
-import { REFERENCE_UTILITY, SIZED_UTILITY, NULLABLE } from './regex'
+import { REFERENCE_UTILITY, SIZED_UTILITY } from './regex'
 
 export class KyselyTables {
   private sourceFile: ts.SourceFile
@@ -185,17 +188,18 @@ export class KyselyTables {
             column.nullable = coltypeMeta.nullable
           }
 
-          const referenceMatch = currentType.match(REFERENCE_UTILITY)
-          if (referenceMatch) {
-            const referencedInterface = referenceMatch[1].trim()
-            const referencedColumn = referenceMatch[3].trim()
-            const keyType = referenceMatch[4].trim()
+          const { 
+            referenceType,
+            referencedInterface,
+            referencedColumn,
+          } = extractReferenceType(currentType)
 
+          if (referenceType) {
             let baseInterfaceName: string
-            if (referencedInterface.endsWith('Table')) {
-              baseInterfaceName = referencedInterface.replace(/Table$/, '')
+            if (referencedInterface!.endsWith('Table')) {
+              baseInterfaceName = referencedInterface!.replace(/Table$/, '')
             } else {
-              baseInterfaceName = referencedInterface
+              baseInterfaceName = referencedInterface as string
             }
 
             if (!this.tableInterfaces.has(baseInterfaceName)) {
@@ -208,15 +212,10 @@ export class KyselyTables {
               )
             }
 
-            const tableName = this.#getTableNameFromInterface(
-              baseInterfaceName + 'Table',
-            )
+            const tableName = this.#getTableNameFromInterface(baseInterfaceName + 'Table')
             column.referencesTable = tableName
             column.referencesColumn = referencedColumn
-            column.onDelete = 'no action'
-            column.onUpdate = 'no action'
-
-            column.tsType = keyType
+            column.tsType = referenceType
           }
 
           columns.push(column)
@@ -241,23 +240,25 @@ export class KyselyTables {
       this.#extractIndexesFromType(node.type)
     }
 
-    // if (ts.isVariableStatement(node)) {
-    //   const isExported = node.modifiers?.some(
-    //     (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
-    //   )
-    //   if (!isExported) return
+    if (ts.isVariableStatement(node)) {
+      const isExported = node.modifiers?.some(
+        (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+      )
+      if (!isExported) return
 
-    //   for (const declaration of node.declarationList.declarations) {
-    //     if (
-    //       ts.isIdentifier(declaration.name) &&
-    //       declaration.name.text === 'indexes'
-    //     ) {
-    //       if (ts.isArrayLiteralExpression(declaration.initializer)) {
-    //         this.extractIndexArray(declaration.initializer)
-    //       }
-    //     }
-    //   }
-    // }
+      for (const declaration of node.declarationList.declarations) {
+        if (
+          ts.isIdentifier(declaration.name) &&
+          declaration.name.text === 'indexes'
+        ) {
+          if (ts.isArrayLiteralExpression(declaration.initializer as ts.Node)) {
+            for (const { tableName, columns, options } of extractIndexArray(declaration.initializer)) {
+              this.indexes.push({ tableName, columns, options })
+            }
+          }
+        }
+      }
+    }
 
     ts.forEachChild(node, this.#registerIndexes.bind(this))
   }
@@ -292,7 +293,7 @@ export class KyselyTables {
           }
 
           const columnsType = typeNode.typeArguments[1]
-          const columns = this.#extractKeysFromType(columnsType)
+          const columns = extractKeysFromType(columnsType)
 
           if (tableName && columns.length > 0) {
             const options =
@@ -304,96 +305,7 @@ export class KyselyTables {
     }
   }
 
-  #extractKeysFromType(typeNode: ts.TypeNode): string[] {
-    if (
-      ts.isTypeReferenceNode(typeNode) &&
-      ts.isIdentifier(typeNode.typeName) &&
-      typeNode.typeName.text === 'Keys'
-    ) {
-      const columns: string[] = []
 
-      if (typeNode.typeArguments && typeNode.typeArguments.length > 0) {
-        const tupleType = typeNode.typeArguments[0]
-
-        if (ts.isTupleTypeNode(tupleType)) {
-          for (const element of tupleType.elements) {
-            if (
-              ts.isLiteralTypeNode(element) &&
-              ts.isStringLiteral(element.literal)
-            ) {
-              columns.push(element.literal.text)
-            }
-          }
-        } else {
-          for (const arg of typeNode.typeArguments) {
-            if (ts.isLiteralTypeNode(arg) && ts.isStringLiteral(arg.literal)) {
-              columns.push(arg.literal.text)
-            }
-          }
-        }
-      }
-
-      return columns
-    }
-
-    return []
-  }
-
-  // private extractIndexArray(arrayLiteral: ts.ArrayLiteralExpression): void {
-  //   for (const element of arrayLiteral.elements) {
-  //     if (
-  //       ts.isCallExpression(element) &&
-  //       ts.isIdentifier(element.expression) &&
-  //       element.expression.text === 'Index'
-  //     ) {
-  //       const args = element.arguments
-  //       if (args.length >= 2) {
-  //         const tableNameArg = args[0]
-  //         let tableName = ''
-  //         if (ts.isStringLiteral(tableNameArg)) {
-  //           tableName = tableNameArg.text
-  //         }
-
-  //         const columnsArg = args[1]
-  //         let columns: string[] = []
-  //         if (ts.isArrayLiteralExpression(columnsArg)) {
-  //           columns = columnsArg.elements
-  //             .map((col) => {
-  //               if (ts.isStringLiteral(col)) {
-  //                 return col.text
-  //               }
-  //               return ''
-  //             })
-  //             .filter(Boolean)
-  //         }
-
-  //         let options: { unique?: boolean; name?: string } | undefined
-  //         if (args.length >= 3 && ts.isObjectLiteralExpression(args[2])) {
-  //           options = {}
-  //           for (const prop of args[2].properties) {
-  //             if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
-  //               if (
-  //                 prop.name.text === 'unique' &&
-  //                 ts.isTrue(prop.initializer)
-  //               ) {
-  //                 options.unique = true
-  //               } else if (
-  //                 prop.name.text === 'name' &&
-  //                 ts.isStringLiteral(prop.initializer)
-  //               ) {
-  //                 options.name = prop.initializer.text
-  //               }
-  //             }
-  //           }
-  //         }
-
-  //         if (tableName && columns.length > 0) {
-  //           this.indexes.push({ tableName, columns, options })
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
 
   convert(): string {
     this.#registerTables(this.sourceFile)
