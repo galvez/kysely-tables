@@ -6,8 +6,6 @@ import {
 } from '../types'
 
 export abstract class BaseDialect implements DialectAdapter {
-  tables: TableDefinition[]
-
   constructor(tables: TableDefinition[]) {
     this.tables = tables
   }
