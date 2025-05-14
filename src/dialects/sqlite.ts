@@ -66,7 +66,7 @@ export class SqliteDialect extends BaseDialect {
         colDef += sqlType
 
         if (column.defaultValue) {
-          if (column.defaultValue === 'now()') {
+          if (column.defaultValue === "'now()'") {
             colDef += " DEFAULT (datetime('now'))"
           } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
             colDef += ' DEFAULT CURRENT_TIMESTAMP'

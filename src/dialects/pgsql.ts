@@ -68,8 +68,10 @@ export class PostgresDialect extends BaseDialect {
         colDef += sqlType
 
         if (column.defaultValue) {
-          if (column.defaultValue === 'CURRENT_TIMESTAMP') {
-            colDef += ' DEFAULT now()'
+          if (column.defaultValue === "'now()'") {
+            colDef += " DEFAULT now()"
+          } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
+            colDef += ' DEFAULT CURRENT_TIMESTAMP'
           } else {
             colDef += ` DEFAULT ${column.defaultValue}`
           }

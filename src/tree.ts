@@ -174,8 +174,8 @@ export function extractDefaultType(typeString: string): {
       nodeType.typeArguments?.length === 2) {
       typeWithDefault = nodeType.typeArguments![0].getText()
       const defaultArg = nodeType.typeArguments![1]
-      if (ts.isLiteralTypeNode(defaultArg)) {
-        defaultValue = defaultArg.literal.getText()
+      if (ts.isLiteralTypeNode(defaultArg) && ts.isStringLiteral(defaultArg.literal)) {
+        defaultValue = defaultArg.getText().slice(1, -1)
       } else {
         defaultValue = defaultArg.getText()
       }

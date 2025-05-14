@@ -6,16 +6,16 @@ CREATE TABLE IF NOT EXISTS "users" (
   "email" VARCHAR(255) NOT NULL UNIQUE,
   "passwordHash" TEXT NOT NULL,
   "role" TEXT DEFAULT 'member' NOT NULL,
-  "createdAt" TEXT DEFAULT 'now()' NOT NULL,
-  "updatedAt" TEXT DEFAULT 'now()' NOT NULL,
+  "createdAt" TEXT DEFAULT now() NOT NULL,
+  "updatedAt" TEXT DEFAULT now() NOT NULL,
   "deletedAt" TEXT
 );
 
 CREATE TABLE IF NOT EXISTS "teams" (
   "id" INTEGER NOT NULL,
   "name" TEXT NOT NULL,
-  "createdAt" TEXT DEFAULT 'now()' NOT NULL,
-  "updatedAt" TEXT DEFAULT 'now()' NOT NULL,
+  "createdAt" TEXT DEFAULT now() NOT NULL,
+  "updatedAt" TEXT DEFAULT now() NOT NULL,
   "stripeCustomerId" TEXT UNIQUE,
   "stripeSubscriptionId" TEXT UNIQUE,
   "stripeProductId" TEXT,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS "invitations" (
   "email" TEXT NOT NULL,
   "role" TEXT NOT NULL,
   "invitedBy" INTEGER NOT NULL,
-  "invitedAt" TEXT DEFAULT 'now()' NOT NULL,
+  "invitedAt" TEXT DEFAULT now() NOT NULL,
   "status" TEXT NOT NULL,
   FOREIGN KEY("teamId") REFERENCES "teams"("id"),
   FOREIGN KEY("invitedBy") REFERENCES "users"("id")
