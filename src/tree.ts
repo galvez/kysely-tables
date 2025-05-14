@@ -59,7 +59,7 @@ export function extractNormalizedTypeString(typeNode: ts.TypeNode): string {
     if (
       typeName === 'Default' &&
       typeNode.typeArguments &&
-      typeNode.typeArguments.length >= 2
+      typeNode.typeArguments.length === 2
     ) {
       const underlyingType = extractNormalizedTypeString(
         typeNode.typeArguments[0],
@@ -71,7 +71,7 @@ export function extractNormalizedTypeString(typeNode: ts.TypeNode): string {
     if (
       typeName === 'Sized' &&
       typeNode.typeArguments &&
-      typeNode.typeArguments.length >= 2
+      typeNode.typeArguments.length === 2
     ) {
       const underlyingType = extractNormalizedTypeString(
         typeNode.typeArguments[0],
@@ -83,7 +83,7 @@ export function extractNormalizedTypeString(typeNode: ts.TypeNode): string {
     if (
       typeName === 'Text' &&
       typeNode.typeArguments &&
-      typeNode.typeArguments.length >= 1
+      typeNode.typeArguments.length === 1
     ) {
       const underlyingType = extractNormalizedTypeString(
         typeNode.typeArguments[0],
@@ -242,6 +242,48 @@ export function extractColumnType(typeString: string): {
   })
 
   return { type: columnType, nullable }
+}
+
+export function extractReferenceType(typeString: string): { 
+  referenceType: string | undefined,
+  referencedInterface: string | undefined,
+  referencedColumn: string | undefined,
+} {
+  const sourceFile = createSourceFragment(typeString)
+
+  let referenceType
+  let referencedInterface
+  let referencedColumn
+
+  const visit = (nodeType: ts.Node) => {
+    if (
+      ts.isTypeReferenceNode(nodeType) &&
+      nodeType.typeName.getText() === 'Reference' &&
+      nodeType.typeArguments?.length === 3
+    ) {
+      referencedInterface = nodeType.typeArguments[0].getText()
+      referencedColumn = nodeType.typeArguments[1].getText().slice(1, -1)
+      referenceType = nodeType.typeArguments[2].getText()
+
+    } else {
+      ts.forEachChild(nodeType, visit)
+    }
+  }
+
+  ts.forEachChild(sourceFile, (node: ts.Node) => {
+    if (
+      ts.isTypeAliasDeclaration(node) && 
+      ts.isTypeReferenceNode(node.type)
+    ) {
+      visit(node.type)
+    }
+  })
+
+  return {
+    referenceType,
+    referencedInterface,
+    referencedColumn
+  }
 }
 
 function createSourceFragment(typeString: string): ts.SourceFile {
