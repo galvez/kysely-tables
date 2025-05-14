@@ -309,44 +309,6 @@ export class KyselyTables {
             column.nullable = coltypeMeta.nullable
           }
 
-          // const columnTypeMatch = currentType.match(
-          //   /^ColumnType<([^,]+),\s*([^,]+),\s*([^>]+)>$/,
-          // )
-          // if (columnTypeMatch) {
-          //   const selectType = columnTypeMatch[1].trim()
-          //   const insertType = columnTypeMatch[2].trim()
-          //   const updateType = columnTypeMatch[3].trim()
-
-          //   column.tsType = selectType
-          //   column.insertType = insertType
-          //   column.updateType = updateType
-          //   column.isUpdateable = updateType !== 'never'
-
-          //   const selectNullable =
-          //     NULLABLE.test(selectType) ?? selectType.trim() === 'null'
-          //   const insertNullable =
-          //     NULLABLE.test(insertType) ?? insertType.trim() === 'null'
-          //   const updateNullable =
-          //     NULLABLE.test(updateType) ?? updateType.trim() === 'null'
-
-          //   column.nullable = selectNullable || insertNullable || updateNullable
-          //   nullable = column.nullable
-
-          //   if (selectNullable) {
-          //     if (selectType.trim() === 'null') {
-          //       column.tsType = 'string'
-          //     } else {
-          //       column.tsType = selectType
-          //         .replace(/\|\s*null\s*|\s*null\s*\|/g, '')
-          //         .trim()
-          //       column.tsType = column.tsType
-          //         .replace(/\|\s*\|/g, '|')
-          //         .replace(/^\||\|$/g, '')
-          //         .trim()
-          //     }
-          //   }
-          // }
-
           const referenceMatch = currentType.match(REFERENCE_UTILITY)
           if (referenceMatch) {
             const referencedInterface = referenceMatch[1].trim()
@@ -594,42 +556,4 @@ export class KyselyTables {
 
     return sql
   }
-}
-
-type CreateSQLSchemaFromFileOptions = {
-  filePath: string
-  fileName: string
-  dialect: Dialect
-}
-
-export function createSQLSchemaFromFile({
-  filePath,
-  fileName,
-  dialect,
-}: CreateSQLSchemaFromFileOptions): string {
-  const kt = new KyselyTables({
-    filePath,
-    fileName,
-    dialect,
-  })
-  return kt.convert()
-}
-
-type CreateSQLSchemaFromSourceOptions = {
-  source: string
-  fileName: string
-  dialect: Dialect
-}
-
-export function createSQLSchemaFromSource({
-  source,
-  fileName,
-  dialect,
-}: CreateSQLSchemaFromSourceOptions): string {
-  const kt = new KyselyTables({
-    source,
-    fileName,
-    dialect,
-  })
-  return kt.convert()
 }

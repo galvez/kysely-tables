@@ -1,10 +1,10 @@
-export {
+import {
   KyselyTables,
-  createSQLSchemaFromSource,
-  createSQLSchemaFromFile,
 } from './ktables'
 
 export { PostgresDialect, SqliteDialect } from './dialects'
+
+export { KyselyTables } from './ktables'
 
 export type {
   Dialect,
@@ -28,3 +28,42 @@ export type {
   Index,
   UniqueIndex,
 } from './types'
+
+
+type CreateSQLSchemaFromFileOptions = {
+  filePath: string
+  fileName: string
+  dialect: Dialect
+}
+
+export function createSQLSchemaFromFile({
+  filePath,
+  fileName,
+  dialect,
+}: CreateSQLSchemaFromFileOptions): string {
+  const kt = new KyselyTables({
+    filePath,
+    fileName,
+    dialect,
+  })
+  return kt.convert()
+}
+
+type CreateSQLSchemaFromSourceOptions = {
+  source: string
+  fileName: string
+  dialect: Dialect
+}
+
+export function createSQLSchemaFromSource({
+  source,
+  fileName,
+  dialect,
+}: CreateSQLSchemaFromSourceOptions): string {
+  const kt = new KyselyTables({
+    source,
+    fileName,
+    dialect,
+  })
+  return kt.convert()
+}
