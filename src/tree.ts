@@ -286,6 +286,42 @@ export function extractReferenceType(typeString: string): {
   }
 }
 
+
+export function extractKeysFromType(typeNode: ts.TypeNode): string[] {
+  if (
+    ts.isTypeReferenceNode(typeNode) &&
+    ts.isIdentifier(typeNode.typeName) &&
+    typeNode.typeName.text === 'Keys'
+  ) {
+    const columns: string[] = []
+
+    if (typeNode.typeArguments && typeNode.typeArguments.length > 0) {
+      const tupleType = typeNode.typeArguments[0]
+
+      if (ts.isTupleTypeNode(tupleType)) {
+        for (const element of tupleType.elements) {
+          if (
+            ts.isLiteralTypeNode(element) &&
+            ts.isStringLiteral(element.literal)
+          ) {
+            columns.push(element.literal.text)
+          }
+        }
+      } else {
+        for (const arg of typeNode.typeArguments) {
+          if (ts.isLiteralTypeNode(arg) && ts.isStringLiteral(arg.literal)) {
+            columns.push(arg.literal.text)
+          }
+        }
+      }
+    }
+
+    return columns
+  }
+
+  return []
+}
+
 function createSourceFragment(typeString: string): ts.SourceFile {
   return ts.createSourceFile(
     '#fragment',
