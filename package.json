@@ -21,6 +21,7 @@
   "license": "MIT",
   "dependencies": {
     "kysely": "^0.28.2",
+    "minimist": "^1.2.8",
     "scule": "^1.3.0",
     "typescript": "^5.0.0",
     "ufo": "^1.6.1"

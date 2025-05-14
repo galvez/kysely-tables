@@ -45,7 +45,12 @@ function makeTest (name: string) {
       if (dev) {
         writeFileSync(outputPath, output)
       }
-      ok(output === readFileSync(outputPath, 'utf8'))
+      if(output !== readFileSync(outputPath, 'utf8')) {
+        console.log(output)
+        console.log()
+        console.log('Test failed:', name)
+        process.exit()
+      }
     }
   }
 }
