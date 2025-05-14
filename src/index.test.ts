@@ -1,6 +1,6 @@
 import test from 'node:test'
 import { ok } from 'node:assert'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
@@ -13,11 +13,17 @@ import {
 const dev = process.argv.includes('--dev')
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-// Type utilities
-test('Default<T, V> type utility', makeTest('default'))
+// Kysely utility types
 test('ColumnType<S, I, U> type utility', makeTest('coltype'))
+test('Generated<T> type utility', makeTest('generated'))
 
-// Adapted from nextjs/saas-starter/blob/main/lib/db/schema.ts
+// Added utility types
+test('Default<T, V> type utility', makeTest('default'))
+test('Primary<T> type utility', makeTest('primary'))
+test('String type utilities', makeTest('strings'))
+test('Number type utilities', makeTest('numbers'))
+
+// Full examples
 test('Full SaaS schema example', makeTest('saas'))
 
 function makeTest (name: string) {
