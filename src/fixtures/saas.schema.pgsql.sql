@@ -58,31 +58,3 @@ CREATE TABLE IF NOT EXISTS "invitations" (
 
 CREATE UNIQUE INDEX "idx_team_members_team_id_user_id" ON "team_members"("teamId", "userId");
 
-DO $$ BEGIN
- ALTER TABLE "team_members" ADD CONSTRAINT "team_members_user_id_users_id_fk"
- FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
- ALTER TABLE "team_members" ADD CONSTRAINT "team_members_team_id_teams_id_fk"
- FOREIGN KEY ("teamId") REFERENCES "public"."teams"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
- ALTER TABLE "invitations" ADD CONSTRAINT "invitations_team_id_teams_id_fk"
- FOREIGN KEY ("teamId") REFERENCES "public"."teams"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
- ALTER TABLE "invitations" ADD CONSTRAINT "invitations_invited_by_users_id_fk"
- FOREIGN KEY ("invitedBy") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
-

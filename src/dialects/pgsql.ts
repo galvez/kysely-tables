@@ -154,33 +154,8 @@ export class PostgresDialect extends BaseDialect {
     return indexStatements
   }
 
-  buildReferences(table: TableDefinition): string[] {
-    const constraints: string[] = []
-
-    for (const column of table.columns) {
-      if (column.referencesTable && column.referencesColumn) {
-        const snakeCaseColumnName = snakeCase(column.name)
-        const snakeCaseReferencedColumn = snakeCase(column.referencesColumn)
-
-        const constraintName = `${table.name}_${snakeCaseColumnName}_${
-          column.referencesTable
-        }_${snakeCaseReferencedColumn}_fk`
-        const onDelete = column.onDelete || 'no action'
-        const onUpdate = column.onUpdate || 'no action'
-
-        constraints.push(
-          `DO $$ BEGIN\n ALTER TABLE "${table.name}" ADD CONSTRAINT "${
-            constraintName
-          }"\n FOREIGN KEY ("${column.name}") REFERENCES "public"."${
-            column.referencesTable
-          }"("${column.referencesColumn}") ON DELETE ${onDelete} ON UPDATE ${
-            onUpdate
-          };\nEXCEPTION\n WHEN duplicate_object THEN null;\nEND $$;`,
-        )
-      }
-    }
-
-    return constraints
+  buildReferences(_table: TableDefinition): string[] {
+    return []
   }
 
   private buildTableLevelReferences(table: TableDefinition): string[] {
