@@ -2,10 +2,47 @@
 
 Give [Kysely]() the same level of DX from [Prisma]() and [Drizzle]().
 
-- Use your Kysely types as your database schema — no need to use kysely-codegen and connect to the database to retrieve the schema structure. No need to use [this](https://github.com/drizzle-team/drizzle-kysely), or [this](https://github.com/eoin-obrien/prisma-extension-kysely), or [this](https://github.com/valtyr/prisma-kysely) and bloat your setup with redundant libraries.
-  - This **will parse your Kysely types** and turn them into the proper `CREATE TABLE` statements.
+Use your **Kysely-compatible types** **as your database schema**. 
 
-- Use your Kysely types to do your migrations, very much like Prisma and Drizze — change your types and the bundled CLI will generate SQL migrations using Postgrator under the hood. Postgrator is a lean and well tested library used by Platformatic.
+No need for an intermediary [schema defining API](https://orm.drizzle.team/docs/schemas) or [schema language](https://www.prisma.io/docs/orm/prisma-schema/overview).
+
+Use the **same types** for your **SQL table schema**, **migrations** and **queries**.
+
+```ts
+import { Generated } from 'kysely'
+import { Unique, Default, Primary, Text, Sized } from 'kysely-tables'
+
+export interface UsersTable {
+  id: Generated<Primary<number>>
+  name: Sized<string, 100> | null
+  email: Unique<Sized<string, 255>>
+  passwordHash: Text<string>
+  role: Default<string, "'member'">
+  createdAt: Default<Date, 'now()'>
+  updatedAt: Default<Data, 'now()'>
+  deletedAt: null | Date
+}
+
+export interface TeamMembersTable {
+  id: Generated<Primary<number>>
+  userId: Reference<UsersTable, 'id', number>
+  teamId: Reference<TeamsTable, 'id', number>
+  role: string
+  joinedAt: Date
+}
+```
+
+No need to [connect to the database to retrieve the schema structure](https://github.com/RobinBlomberg/kysely-codegen). 
+
+No need for [`drizzle-kysely`](https://github.com/drizzle-team/drizzle-kysely), [`prisma-extension-kysely`](https://github.com/eoin-obrien/prisma-extension-kysely), [`prisma-kysely`](https://github.com/valtyr/prisma-kysely). 
+
+Don't bloat your setup with redundant libraries.
+
+This **will parse your Kysely types** and turn them into the proper `CREATE TABLE` statements.
+
+**And** use your Kysely types to do your migrations, very much like Prisma and Drizze.
+
+Simply change your types to generate SQL migrations using Postgrator under the hood.
 
 <br>
 
