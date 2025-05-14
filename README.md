@@ -34,9 +34,7 @@ export interface TeamMembersTable {
 
 No need to [connect to the database to retrieve the schema structure](https://github.com/RobinBlomberg/kysely-codegen). 
 
-No need for [`drizzle-kysely`](https://github.com/drizzle-team/drizzle-kysely), [`prisma-extension-kysely`](https://github.com/eoin-obrien/prisma-extension-kysely), [`prisma-kysely`](https://github.com/valtyr/prisma-kysely). 
-
-Don't bloat your setup with redundant libraries.
+No need to [bloat](https://github.com/drizzle-team/drizzle-kysely) [your](https://github.com/eoin-obrien/prisma-extension-kysely) [setup](https://github.com/valtyr/prisma-kysely) mixing multiple database libraries.
 
 This **will parse your Kysely types** and turn them into the proper `CREATE TABLE` statements.
 
