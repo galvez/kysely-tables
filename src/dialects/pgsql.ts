@@ -93,6 +93,11 @@ export class PostgresDialect extends BaseDialect {
 
     sql += columnDefinitions.join(',\n')
 
+    const foreignKeys = this.buildTableLevelReferences(table)
+    if (foreignKeys.length > 0) {
+      sql += ',\n' + foreignKeys.join(',\n')
+    }
+
     if (constraints.length > 0) {
       sql += ',\n' + constraints.join(',\n')
     }
@@ -172,6 +177,31 @@ export class PostgresDialect extends BaseDialect {
             onUpdate
           };\nEXCEPTION\n WHEN duplicate_object THEN null;\nEND $$;`,
         )
+      }
+    }
+
+    return constraints
+  }
+
+  private buildTableLevelReferences(table: TableDefinition): string[] {
+    const constraints: string[] = []
+
+    for (const column of table.columns) {
+      if (column.referencesTable && column.referencesColumn) {
+        const snakeCaseColumnName = snakeCase(column.name)
+        const snakeCaseReferencedColumn = snakeCase(column.referencesColumn)
+
+        const constraintName = `${
+          snakeCaseColumnName
+        }_${
+          column.referencesTable
+        }_${snakeCaseReferencedColumn}_fk`
+
+        let constraint = `  CONSTRAINT "${constraintName}" FOREIGN KEY("${column.name}") REFERENCES "${
+          column.referencesTable
+        }"("${column.referencesColumn}")`
+
+        constraints.push(constraint)
       }
     }
 
