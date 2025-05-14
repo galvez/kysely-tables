@@ -533,20 +533,21 @@ export class KyselyTables {
       sql += preamble + '\n'
     }
 
-    sql += '\n'
+    if (this.tables.length) {
+      sql += '\n'
 
-    for (const table of this.tables) {
-      sql += this.adapter.buildTable(table)
-      sql += '\n\n'
+      for (const table of this.tables) {
+        sql += this.adapter.buildTable(table)
+        sql += '\n\n'
+      }
     }
 
     if (this.indexes.length > 0) {
       for (const index of this.adapter.buildIndexes(this.indexes)) {
         sql += `${index}\n`
       }
+      sql += '\n'      
     }
-
-    sql += '\n'
 
     for (const table of this.tables) {
       for (const constraint of this.adapter.buildReferences(table)) {

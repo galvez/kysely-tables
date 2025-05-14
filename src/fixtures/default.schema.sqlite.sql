@@ -9,4 +9,3 @@ CREATE TABLE IF NOT EXISTS "table_with_defaults" (
   "field_coltype_default" TEXT DEFAULT 'now()' NOT NULL
 );
 
-

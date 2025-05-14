@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS "team_members" (
   "userId" integer NOT NULL,
   "teamId" integer NOT NULL,
   "role" varchar(255) NOT NULL,
-  "joinedAt" timestamp NOT NULL
+  "joinedAt" timestamp NOT NULL,
+  CONSTRAINT "user_id_users_id_fk" FOREIGN KEY("userId") REFERENCES "users"("id"),
+  CONSTRAINT "team_id_teams_id_fk" FOREIGN KEY("teamId") REFERENCES "teams"("id")
 );
 
 CREATE TABLE IF NOT EXISTS "activity_log" (
@@ -49,7 +51,9 @@ CREATE TABLE IF NOT EXISTS "invitations" (
   "role" varchar(255) NOT NULL,
   "invitedBy" integer NOT NULL,
   "invitedAt" timestamp DEFAULT 'now()' NOT NULL,
-  "status" varchar(255) NOT NULL
+  "status" varchar(255) NOT NULL,
+  CONSTRAINT "team_id_teams_id_fk" FOREIGN KEY("teamId") REFERENCES "teams"("id"),
+  CONSTRAINT "invited_by_users_id_fk" FOREIGN KEY("invitedBy") REFERENCES "users"("id")
 );
 
 CREATE UNIQUE INDEX "idx_team_members_team_id_user_id" ON "team_members"("teamId", "userId");

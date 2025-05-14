@@ -4,4 +4,3 @@ CREATE TABLE IF NOT EXISTS "foo" (
   "field_nullable" timestamp
 );
 
-
