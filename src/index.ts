@@ -1,9 +1,7 @@
-import {
-  KyselyTables,
-} from './ktables'
+import { Dialect } from './types'
+import { KyselyTables } from './ktables'
 
 export { PostgresDialect, SqliteDialect } from './dialects'
-
 export { KyselyTables } from './ktables'
 
 export type {

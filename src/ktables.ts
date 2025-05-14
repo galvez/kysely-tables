@@ -1,8 +1,11 @@
-import * as ts from 'typescript'
+import ts from 'typescript'
+
 import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { snakeCase } from 'scule'
+
 import { 
+  extractNormalizedTypeString,
   extractNullableType, 
   extractDefaultType,
   extractColumnType
@@ -24,13 +27,15 @@ export class KyselyTables {
   private tables: TableDefinition[]
   private tableInterfaces: Set<string>
   private indexes: IndexDefinition[] = []
-  private adapter: DialectAdapter
   private dialect: Dialect
+
+  #adapter: DialectAdapter | null
 
   constructor(options: ConverterOptions) {
     this.tables = []
     this.tableInterfaces = new Set()
     this.dialect = options.dialect
+    this.#adapter = null
 
     let sourceCode: string
     let fileName: string
@@ -75,135 +80,6 @@ export class KyselyTables {
     ts.forEachChild(node, this.#registerTables.bind(this))
   }
 
-  #extractTypeString(typeNode: ts.TypeNode): string {
-    if (ts.isUnionTypeNode(typeNode)) {
-      return typeNode.types.map((t) => this.#extractTypeString(t)).join(' | ')
-    }
-
-    if (ts.isTypeReferenceNode(typeNode)) {
-      const typeName = typeNode.typeName.getText()
-
-      if (
-        typeName === 'Reference' &&
-        typeNode.typeArguments &&
-        typeNode.typeArguments.length >= 3
-      ) {
-        const referencedTable = this.#extractTypeString(
-          typeNode.typeArguments[0],
-        )
-        const referencedColumn = this.#extractTypeString(
-          typeNode.typeArguments[1],
-        )
-        const keyType = this.#extractTypeString(typeNode.typeArguments[2])
-        return `Reference<${referencedTable}, ${referencedColumn}, ${keyType}>`
-      }
-
-      if (
-        typeName === 'Generated' &&
-        typeNode.typeArguments &&
-        typeNode.typeArguments.length >= 1
-      ) {
-        const underlyingType = this.#extractTypeString(
-          typeNode.typeArguments[0],
-        )
-        return `Generated<${underlyingType}>`
-      }
-
-      if (
-        typeName === 'Unique' &&
-        typeNode.typeArguments &&
-        typeNode.typeArguments.length >= 1
-      ) {
-        const underlyingType = this.#extractTypeString(
-          typeNode.typeArguments[0],
-        )
-        return `Unique<${underlyingType}>`
-      }
-
-      if (
-        typeName === 'Primary' &&
-        typeNode.typeArguments &&
-        typeNode.typeArguments.length >= 1
-      ) {
-        const underlyingType = this.#extractTypeString(
-          typeNode.typeArguments[0],
-        )
-        return `Primary<${underlyingType}>`
-      }
-
-      if (
-        typeName === 'Default' &&
-        typeNode.typeArguments &&
-        typeNode.typeArguments.length >= 2
-      ) {
-        const underlyingType = this.#extractTypeString(
-          typeNode.typeArguments[0],
-        )
-        const defaultValue = this.#extractTypeString(typeNode.typeArguments[1])
-        return `Default<${underlyingType}, ${defaultValue}>`
-      }
-
-      if (
-        typeName === 'Sized' &&
-        typeNode.typeArguments &&
-        typeNode.typeArguments.length >= 2
-      ) {
-        const underlyingType = this.#extractTypeString(
-          typeNode.typeArguments[0],
-        )
-        const size = this.#extractTypeString(typeNode.typeArguments[1])
-        return `Sized<${underlyingType}, ${size}>`
-      }
-
-      if (
-        typeName === 'Text' &&
-        typeNode.typeArguments &&
-        typeNode.typeArguments.length >= 1
-      ) {
-        const underlyingType = this.#extractTypeString(
-          typeNode.typeArguments[0],
-        )
-        return `Text<${underlyingType}>`
-      }
-
-      if (
-        typeName === 'ColumnType' &&
-        typeNode.typeArguments &&
-        typeNode.typeArguments.length >= 1
-      ) {
-        const selectType = this.#extractTypeString(typeNode.typeArguments[0])
-        const insertType =
-          typeNode.typeArguments.length >= 2
-            ? this.#extractTypeString(typeNode.typeArguments[1])
-            : selectType
-        const updateType =
-          typeNode.typeArguments.length >= 3
-            ? this.#extractTypeString(typeNode.typeArguments[2])
-            : selectType
-        return `ColumnType<${selectType}, ${insertType}, ${updateType}>`
-      }
-
-      return typeName
-    }
-
-    switch (typeNode.kind) {
-      case ts.SyntaxKind.StringKeyword:
-        return 'string'
-      case ts.SyntaxKind.NumberKeyword:
-        return 'number'
-      case ts.SyntaxKind.BooleanKeyword:
-        return 'boolean'
-      case ts.SyntaxKind.NullKeyword:
-        return 'null'
-      case ts.SyntaxKind.UndefinedKeyword:
-        return 'undefined'
-      case ts.SyntaxKind.NeverKeyword:
-        return 'never'
-      default:
-        return typeNode.getText()
-    }
-  }
-
   #getTableNameFromInterface(interfaceName: string): string {
     const withoutSuffix = interfaceName.replace(/Table$/, '')
     return snakeCase(withoutSuffix)
@@ -228,11 +104,11 @@ export class KyselyTables {
         ) {
           const columnName = member.name.text
 
-          let type: string
-          let nullable
+          let type: string = ''
+          let nullable: boolean = false
 
           if (member.type) {
-            type = this.#extractTypeString(member.type)
+            type = extractNormalizedTypeString(member.type)
           }
 
           if (!type) {
@@ -524,11 +400,11 @@ export class KyselyTables {
     this.#registerTableColumns(this.sourceFile)
     this.#registerIndexes(this.sourceFile)
 
-    this.adapter = new this.dialect(this.tables)
+    this.#adapter = new this.dialect(this.tables)
 
     let sql = ''
 
-    const preamble = this.adapter.buildPreamble()
+    const preamble = this.#adapter.buildPreamble()
     if (preamble) {
       sql += preamble + '\n'
     }
@@ -537,20 +413,20 @@ export class KyselyTables {
       sql += '\n'
 
       for (const table of this.tables) {
-        sql += this.adapter.buildTable(table)
+        sql += this.#adapter.buildTable(table)
         sql += '\n\n'
       }
     }
 
     if (this.indexes.length > 0) {
-      for (const index of this.adapter.buildIndexes(this.indexes)) {
+      for (const index of this.#adapter.buildIndexes(this.indexes)) {
         sql += `${index}\n`
       }
       sql += '\n'      
     }
 
     for (const table of this.tables) {
-      for (const constraint of this.adapter.buildReferences(table)) {
+      for (const constraint of this.#adapter.buildReferences(table)) {
         sql += `${constraint}\n\n`
       }
     }
