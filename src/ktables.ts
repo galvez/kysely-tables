@@ -10,8 +10,7 @@ import {
   extractDefaultType,
   extractColumnType,
   extractReferenceType,
-  extractKeysFromType,
-  extractIndexArray
+  extractKeysFromType
 } from './tree'
 
 import {
@@ -238,26 +237,6 @@ export class KyselyTables {
       }
 
       this.#extractIndexesFromType(node.type)
-    }
-
-    if (ts.isVariableStatement(node)) {
-      const isExported = node.modifiers?.some(
-        (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
-      )
-      if (!isExported) return
-
-      for (const declaration of node.declarationList.declarations) {
-        if (
-          ts.isIdentifier(declaration.name) &&
-          declaration.name.text === 'indexes'
-        ) {
-          if (ts.isArrayLiteralExpression(declaration.initializer as ts.Node)) {
-            for (const { tableName, columns, options } of extractIndexArray(declaration.initializer)) {
-              this.indexes.push({ tableName, columns, options })
-            }
-          }
-        }
-      }
     }
 
     ts.forEachChild(node, this.#registerIndexes.bind(this))
