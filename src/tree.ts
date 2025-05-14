@@ -199,6 +199,40 @@ export function extractDefaultType(typeString: string): {
   }
 }
 
+
+export function extractSizedType(typeString: string, deep: boolean = false): {
+  sizedType: string | null
+  size: string | null
+} {
+  const sourceFile = createSourceFragment(typeString)
+
+  let sizedType: string | null = null
+  let size: string | null = null
+
+  const visit = (nodeType: ts.Node) => {
+    if (
+      ts.isTypeReferenceNode(nodeType) &&
+      nodeType.typeName.getText() === 'Sized' &&
+      nodeType.typeArguments?.length === 2) {
+      sizedType = nodeType.typeArguments![0].getText()
+      size = nodeType.typeArguments![1].getText()
+    } else if (deep) {
+      ts.forEachChild(nodeType, visit)
+    }
+  }
+
+  ts.forEachChild(sourceFile, (node: ts.Node) => {
+    if (
+      ts.isTypeAliasDeclaration(node) && 
+      ts.isTypeReferenceNode(node.type)
+    ) {
+      visit(node.type)
+    }
+  })
+
+  return { sizedType, size }
+}
+
 export function extractColumnType(typeString: string): { 
   type: string | null,  
   nullable: boolean 

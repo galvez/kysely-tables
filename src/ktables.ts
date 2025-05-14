@@ -8,6 +8,7 @@ import {
   extractNormalizedTypeString,
   extractNullableType, 
   extractDefaultType,
+  extractSizedType,
   extractColumnType,
   extractReferenceType,
   extractKeysFromType
@@ -22,7 +23,7 @@ import {
   IndexDefinition,
 } from './types'
 
-import { REFERENCE_UTILITY, SIZED_UTILITY } from './regex'
+import { SIZED_UTILITY } from './regex'
 
 export class KyselyTables {
   private sourceFile: ts.SourceFile
@@ -137,8 +138,9 @@ export class KyselyTables {
               continue
             }
 
-            const sizedMatch = currentType.match(SIZED_UTILITY)
-            if (sizedMatch) {
+
+            const { sizedType } = extractSizedType(currentType, false)
+            if (sizedType) {
               break
             }
 
