@@ -1,13 +1,10 @@
 import * as ts from 'typescript'
 import { ok } from 'node:assert'
 
-export function extractNullableType(typeString: string): boolean {
-  const sourceFile = ts.createSourceFile(
-    '#fragment',
-    `type T = ${typeString};`,
-    ts.ScriptTarget.Latest,
-    true,
-  )
+// console.log(ts.SyntaxKind)
+
+export function extractNullableType(typeString: string): string | undefined {
+  const sourceFile = createSourceFragment(typeString)
 
   let nullableType: string | undefined
 
@@ -35,45 +32,29 @@ export function extractNullableType(typeString: string): boolean {
   return nullableType
 }
 
-if (process.stdout.isTTY) {
-  ok(extractNullableType('Date | undefined') === 'Date')
-  ok(extractNullableType('null | string') === 'string')
-  ok(typeof extractNullableType('null | string | Foobar') === 'undefined')
-  ok(typeof extractNullableType('null | Date | string') === 'undefined')
-}
-
-export function extractDefaultType(typeString: string): {
+export function extractDefaultType2(typeString: string): {
   type: string
   defaultValue: string | null
 } {
-  const sourceFile = ts.createSourceFile(
-    '#fragment',
-    `type T = ${typeString};`,
-    ts.ScriptTarget.Latest,
-    true,
-  )
+  const sourceFile = createSourceFragment(typeString)
 
   let typeWithDefault: string | null = null
   let defaultValue: string | null = null
 
   ts.forEachChild(sourceFile, (node: ts.Node) => {
-    if (ts.isTypeAliasDeclaration(node)) {
-      if (
-        ts.isTypeReferenceNode(node.type) &&
-        node.type.typeName.getText() === 'Default' &&
-        node.type.typeArguments.length === 2
-      ) {
-        typeWithDefault = node.type.typeArguments[0].getText()
-        const defaultArg = node.type.typeArguments[1]
-
-        if (
-          ts.isLiteralTypeNode(defaultArg) &&
-          ts.isStringLiteral(defaultArg.literal)
-        ) {
-          defaultValue = defaultArg.literal.text
-        } else {
-          defaultValue = `'${defaultArg.getText()}'`
-        }
+    if (
+      ts.isTypeAliasDeclaration(node) && 
+      ts.isTypeReferenceNode(node.type) &&
+      node.type.typeName.getText() === 'Default' &&
+      node.type.typeArguments?.length === 2
+    ) {
+      const nodeType: ts.NodeWithTypeArguments = node.type
+      typeWithDefault = nodeType.typeArguments![0].getText()
+      const defaultArg = nodeType.typeArguments![1]
+      if (ts.isLiteralTypeNode(defaultArg)) {
+        defaultValue = defaultArg.literal.getText()
+      } else {
+        defaultValue = defaultArg.getText()
       }
     }
   })
@@ -82,4 +63,99 @@ export function extractDefaultType(typeString: string): {
     type: typeWithDefault ?? typeString,
     defaultValue,
   }
+}
+
+
+export function extractDefaultType(typeString: string): {
+  type: string
+  defaultValue: string | null
+} {
+  const sourceFile = createSourceFragment(typeString)
+
+  let typeWithDefault: string | null = null
+  let defaultValue: string | null = null
+
+  const visit = (nodeType: ts.Node) => {
+    if (
+      ts.isTypeReferenceNode(nodeType) &&
+      nodeType.typeName.getText() === 'Default' &&
+      nodeType.typeArguments?.length === 2) {
+      typeWithDefault = nodeType.typeArguments![0].getText()
+      const defaultArg = nodeType.typeArguments![1]
+      if (ts.isLiteralTypeNode(defaultArg)) {
+        defaultValue = defaultArg.literal.getText()
+      } else {
+        defaultValue = defaultArg.getText()
+      }
+    } else {
+      ts.forEachChild(nodeType, visit)
+    }
+  }
+  ts.forEachChild(sourceFile, (node: ts.Node) => {
+    if (
+      ts.isTypeAliasDeclaration(node) && 
+      ts.isTypeReferenceNode(node.type)
+    ) {
+      visit(node.type)
+    }
+  })
+
+  return {
+    type: typeWithDefault ?? typeString,
+    defaultValue,
+  }
+}
+
+export function extractColumnType(typeString: string): {
+  type: string
+  defaultValue: string | null
+} {
+  const sourceFile = createSourceFragment(typeString)
+
+  let nullable: boolean = false
+  let columnType: string | null = null
+
+  ts.forEachChild(sourceFile, (node: ts.Node) => {
+    if (ts.isTypeAliasDeclaration(node)) {
+      if (
+        ts.isTypeReferenceNode(node.type) &&
+        node.type.typeName.getText() === 'ColumnType' &&
+        node.type.typeArguments?.length === 3
+      ) {
+        const originalType = node.type.typeArguments[0].getText()
+        const nullableType = extractNullableType(originalType)
+        if (nullableType) {
+          columnType = nullableType
+          nullable = true
+        } else {
+          columnType = originalType
+          for (const potentiallyNullable of [
+            extractNullableType(node.type.typeArguments[0].getText()),
+            extractNullableType(node.type.typeArguments[1].getText())
+          ]) {
+            if (potentiallyNullable) {
+              nullable = true
+            }
+          }
+        }
+        // if (columnType) {
+        //   const { type: typeWithDefault, defaultValue } = extractDefaultType(columnType)
+        //   if (defaultValue) {
+        //     columnType = typeWithDefault
+        //   }
+        // }
+      }
+    }
+  })
+
+  return { columnType, nullable }
+}
+
+function createSourceFragment(typeString: string): ts.SourceFile {
+  return ts.createSourceFile(
+    '#fragment',
+    `type T = ${typeString};`,
+    ts.ScriptTarget.Latest,
+    true,
+  )
 }

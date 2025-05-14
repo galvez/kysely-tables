@@ -2,7 +2,11 @@ import * as ts from 'typescript'
 import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { snakeCase } from 'scule'
-import { extractNullableType, extractDefaultType } from './tree'
+import { 
+  extractNullableType, 
+  extractDefaultType,
+  extractColumnType
+} from './tree'
 
 import {
   Dialect,
@@ -297,6 +301,13 @@ export class KyselyTables {
           }
 
           column.tsType = currentType
+
+          const coltypeMeta = extractColumnType(currentType)
+
+          if (coltypeMeta.columnType) {
+            column.tsType = coltypeMeta.columnType
+            column.nullable = coltypeMeta.nullable
+          }
 
           // const columnTypeMatch = currentType.match(
           //   /^ColumnType<([^,]+),\s*([^,]+),\s*([^>]+)>$/,

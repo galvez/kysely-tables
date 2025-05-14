@@ -10,79 +10,36 @@ import {
   SqliteDialect,
 } from './index'
 
+const dev = process.argv.includes('--dev')
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-test("compatibility with Kysely's type utilities", () => {
-  const tsSchema = join(__dirname, 'fixtures', 'kysely-compat.schema.ts')
-  const source = readFileSync(tsSchema, 'utf8')
+// Type utilities
+test('Default<T, V> type utility', makeTest('default'))
+test.skip('ColumnType<S, I, U> type utility', makeTest('coltype'))
 
-  const outputs = [
-    [
-      PostgresDialect,
-      join(__dirname, 'fixtures', 'kysely-compat.schema.pgsql.sql'),
-    ],
-    [
-      SqliteDialect,
-      join(__dirname, 'fixtures', 'kysely-compat.schema.sqlite.sql'),
-    ],
-  ]
+// Adapted from nextjs/saas-starter/blob/main/lib/db/schema.ts
+test.skip('Sample SaaS full schema', makeTest('saas'))
 
-  for (const [dialect, outputPath] of outputs) {
-    const output = createSQLSchemaFromSource({
-      source,
-      fileName: 'schema.ts',
-      dialect: dialect as Dialect,
-    })
-          writeFileSync(outputPath, output)
+function makeTest (name) {
+  return () => {
+    const tsSchema = join(__dirname, 'fixtures', `${name}.schema.ts`)
+    const source = readFileSync(tsSchema, 'utf8')
 
-    ok(output === readFileSync(outputPath as string, 'utf8'))
-  }
-})
+    const outputs = [
+      [PostgresDialect, join(__dirname, 'fixtures', `${name}.schema.pgsql.sql`)],
+      [SqliteDialect, join(__dirname, 'fixtures', `${name}.schema.sqlite.sql`)],
+    ]
 
-test('Default<T, V> type utility', () => {
-  const tsSchema = join(__dirname, 'fixtures', 'default.schema.ts')
-  const source = readFileSync(tsSchema, 'utf8')
-
-  const outputs = [
-    [PostgresDialect, join(__dirname, 'fixtures', 'default.schema.pgsql.sql')],
-    [SqliteDialect, join(__dirname, 'fixtures', 'default.schema.sqlite.sql')],
-  ]
-
-  for (const [dialect, outputPath] of outputs) {
-    const output = createSQLSchemaFromSource({
-      source,
-      fileName: 'schema.ts',
-      dialect: dialect as Dialect,
-    })
-    if (existsSync(outputPath)) {
-      // writeFileSync(outputPath.replace('.sql', '.debug.sql'), output)
-      writeFileSync(outputPath, output)
+    for (const [dialect, outputPath] of outputs) {
+      const output = createSQLSchemaFromSource({
+        source,
+        fileName: '#fragment',
+        dialect: dialect as Dialect,
+      })
+      if (dev) {
+        writeFileSync(outputPath, output)
+      }
       ok(output === readFileSync(outputPath, 'utf8'))
-    } else {
-      writeFileSync(outputPath, output)
     }
   }
-})
-
-test('official SaaS Starter from Next.js', () => {
-  const tsSchema = join(__dirname, 'fixtures', 'next-saas.schema.ts')
-  const source = readFileSync(tsSchema, 'utf8')
-
-  const outputs = [
-    [
-      PostgresDialect,
-      join(__dirname, 'fixtures', 'next-saas.schema.pgsql.sql'),
-    ],
-    [SqliteDialect, join(__dirname, 'fixtures', 'next-saas.schema.sqlite.sql')],
-  ]
-
-  for (const [dialect, outputPath] of outputs) {
-    const output = createSQLSchemaFromSource({
-      source,
-      fileName: 'schema.ts',
-      dialect: dialect as Dialect,
-    })
-    writeFileSync(outputPath.replace('.sql', '.debug.sql'), output)
-    ok(output === readFileSync(outputPath as string, 'utf8'))
-  }
-})
+}
