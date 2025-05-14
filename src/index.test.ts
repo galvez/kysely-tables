@@ -15,17 +15,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // Type utilities
 test('Default<T, V> type utility', makeTest('default'))
-test.skip('ColumnType<S, I, U> type utility', makeTest('coltype'))
+test('ColumnType<S, I, U> type utility', makeTest('coltype'))
 
 // Adapted from nextjs/saas-starter/blob/main/lib/db/schema.ts
-test.skip('Sample SaaS full schema', makeTest('saas'))
+test('Full SaaS schema example', makeTest('saas'))
 
-function makeTest (name) {
+function makeTest (name: string) {
   return () => {
     const tsSchema = join(__dirname, 'fixtures', `${name}.schema.ts`)
     const source = readFileSync(tsSchema, 'utf8')
 
-    const outputs = [
+    const outputs: [Dialect, string][] = [
       [PostgresDialect, join(__dirname, 'fixtures', `${name}.schema.pgsql.sql`)],
       [SqliteDialect, join(__dirname, 'fixtures', `${name}.schema.sqlite.sql`)],
     ]

@@ -304,8 +304,8 @@ export class KyselyTables {
 
           const coltypeMeta = extractColumnType(currentType)
 
-          if (coltypeMeta.columnType) {
-            column.tsType = coltypeMeta.columnType
+          if (coltypeMeta.type) {
+            column.tsType = coltypeMeta.type
             column.nullable = coltypeMeta.nullable
           }
 

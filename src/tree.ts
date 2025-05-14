@@ -1,7 +1,4 @@
 import * as ts from 'typescript'
-import { ok } from 'node:assert'
-
-// console.log(ts.SyntaxKind)
 
 export function extractNullableType(typeString: string): string | undefined {
   const sourceFile = createSourceFragment(typeString)
@@ -18,7 +15,7 @@ export function extractNullableType(typeString: string): string | undefined {
           if (
             t.kind === ts.SyntaxKind.NullKeyword ||
             t.kind === ts.SyntaxKind.UndefinedKeyword ||
-            (t.kind === ts.SyntaxKind.LiteralType &&
+            (ts.isLiteralTypeNode(t) &&
               (t.literal.kind === ts.SyntaxKind.NullKeyword ||
                 t.literal.kind === ts.SyntaxKind.UndefinedKeyword))
           ) {
@@ -31,40 +28,6 @@ export function extractNullableType(typeString: string): string | undefined {
   })
   return nullableType
 }
-
-export function extractDefaultType2(typeString: string): {
-  type: string
-  defaultValue: string | null
-} {
-  const sourceFile = createSourceFragment(typeString)
-
-  let typeWithDefault: string | null = null
-  let defaultValue: string | null = null
-
-  ts.forEachChild(sourceFile, (node: ts.Node) => {
-    if (
-      ts.isTypeAliasDeclaration(node) && 
-      ts.isTypeReferenceNode(node.type) &&
-      node.type.typeName.getText() === 'Default' &&
-      node.type.typeArguments?.length === 2
-    ) {
-      const nodeType: ts.NodeWithTypeArguments = node.type
-      typeWithDefault = nodeType.typeArguments![0].getText()
-      const defaultArg = nodeType.typeArguments![1]
-      if (ts.isLiteralTypeNode(defaultArg)) {
-        defaultValue = defaultArg.literal.getText()
-      } else {
-        defaultValue = defaultArg.getText()
-      }
-    }
-  })
-
-  return {
-    type: typeWithDefault ?? typeString,
-    defaultValue,
-  }
-}
-
 
 export function extractDefaultType(typeString: string): {
   type: string
@@ -91,6 +54,7 @@ export function extractDefaultType(typeString: string): {
       ts.forEachChild(nodeType, visit)
     }
   }
+
   ts.forEachChild(sourceFile, (node: ts.Node) => {
     if (
       ts.isTypeAliasDeclaration(node) && 
@@ -106,9 +70,9 @@ export function extractDefaultType(typeString: string): {
   }
 }
 
-export function extractColumnType(typeString: string): {
-  type: string
-  defaultValue: string | null
+export function extractColumnType(typeString: string): { 
+  type: string | null,  
+  nullable: boolean 
 } {
   const sourceFile = createSourceFragment(typeString)
 
@@ -138,17 +102,17 @@ export function extractColumnType(typeString: string): {
             }
           }
         }
-        // if (columnType) {
-        //   const { type: typeWithDefault, defaultValue } = extractDefaultType(columnType)
-        //   if (defaultValue) {
-        //     columnType = typeWithDefault
-        //   }
-        // }
+        if (columnType) {
+          const { type: typeWithDefault, defaultValue } = extractDefaultType(columnType)
+          if (defaultValue) {
+            columnType = typeWithDefault
+          }
+        }
       }
     }
   })
 
-  return { columnType, nullable }
+  return { type: columnType, nullable }
 }
 
 function createSourceFragment(typeString: string): ts.SourceFile {
