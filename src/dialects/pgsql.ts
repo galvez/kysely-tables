@@ -1,34 +1,27 @@
 import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
-import { TableDefinition, IndexDefinition } from '../types'
+import { TableDefinition, IndexDefinition, ColumnDefinition } from '../types'
 
 export class PostgresDialect extends BaseDialect {
   buildPreamble(): string {
     return ''
   }
 
-  buildColumn(tsType: string): string {
+  buildColumn(column: ColumnDefinition): string {
     let sqlType: string
 
-    // TODO refactor to src/tree.ts using AST
-    const textMatch = tsType.match(/^Text<([^>]+)>$/)
-    if (textMatch) {
+    if (column.isText) {
       return 'text'
     }
 
-    // TODO refactor to src/tree.ts using AST
-    const sizedMatch = tsType.match(/^Sized<([^,]+),\s*(\d+)>$/)
-    if (sizedMatch) {
-      const underlyingType = sizedMatch[1].trim()
-      const size = sizedMatch[2].trim()
-
-      if (underlyingType === 'string') {
-        return `varchar(${size})`
+    if (column.size) {
+      if (column.tsType === 'string') {
+        return `varchar(${column.size})`
       }
       return 'text'
     }
 
-    switch (tsType) {
+    switch (column.tsType) {
       case 'string':
         sqlType = 'varchar(255)'
         break
@@ -42,11 +35,11 @@ export class PostgresDialect extends BaseDialect {
         sqlType = 'boolean'
         break
       default:
-        if (tsType.startsWith('JSONColumnType<')) {
-          sqlType = 'jsonb'
-        } else {
+        // if (column.tsType.startsWith('JSONColumnType<')) {
+        //   sqlType = 'jsonb'
+        // } else {
           sqlType = 'text'
-        }
+        // }
     }
 
     return sqlType
@@ -64,7 +57,7 @@ export class PostgresDialect extends BaseDialect {
       if (column.isPrimaryKey && column.isGenerated) {
         colDef += 'serial PRIMARY KEY NOT NULL'
       } else {
-        const sqlType = this.buildColumn(column.tsType)
+        const sqlType = this.buildColumn(column)
         colDef += sqlType
 
         if (column.defaultValue) {

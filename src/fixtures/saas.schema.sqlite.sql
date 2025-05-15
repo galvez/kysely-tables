@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 );
 
 CREATE TABLE IF NOT EXISTS "teams" (
-  "id" INTEGER NOT NULL,
+  "id" TEXT NOT NULL,
   "name" TEXT NOT NULL,
   "createdAt" TEXT DEFAULT now() NOT NULL,
   "updatedAt" TEXT DEFAULT now() NOT NULL,
@@ -24,9 +24,9 @@ CREATE TABLE IF NOT EXISTS "teams" (
 );
 
 CREATE TABLE IF NOT EXISTS "team_members" (
-  "id" INTEGER NOT NULL,
-  "userId" INTEGER NOT NULL,
-  "teamId" INTEGER NOT NULL,
+  "id" TEXT NOT NULL,
+  "userId" TEXT NOT NULL,
+  "teamId" TEXT NOT NULL,
   "role" TEXT NOT NULL,
   "joinedAt" TEXT NOT NULL,
   FOREIGN KEY("userId") REFERENCES "UsersTable"("'id'"),
@@ -34,20 +34,20 @@ CREATE TABLE IF NOT EXISTS "team_members" (
 );
 
 CREATE TABLE IF NOT EXISTS "activity_log" (
-  "id" INTEGER NOT NULL,
-  "teamId" INTEGER NOT NULL,
-  "userId" INTEGER,
+  "id" TEXT NOT NULL,
+  "teamId" TEXT NOT NULL,
+  "userId" TEXT,
   "action" TEXT NOT NULL,
   "timestamp" TEXT NOT NULL,
   "ipAddress" TEXT
 );
 
 CREATE TABLE IF NOT EXISTS "invitations" (
-  "id" INTEGER NOT NULL,
-  "teamId" INTEGER NOT NULL,
+  "id" TEXT NOT NULL,
+  "teamId" TEXT NOT NULL,
   "email" TEXT NOT NULL,
   "role" TEXT NOT NULL,
-  "invitedBy" INTEGER NOT NULL,
+  "invitedBy" TEXT NOT NULL,
   "invitedAt" TEXT DEFAULT now() NOT NULL,
   "status" TEXT NOT NULL,
   FOREIGN KEY("teamId") REFERENCES "TeamsTable"("'id'"),

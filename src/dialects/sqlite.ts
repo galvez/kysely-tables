@@ -7,26 +7,21 @@ export class SqliteDialect extends BaseDialect {
     return 'PRAGMA foreign_keys = ON;'
   }
 
-  buildColumn(tsType: string): string {
+  buildColumn(column: ColumnDefinition): string {
     let sqlType: string
 
-    const textMatch = tsType.match(/^Text<([^>]+)>$/)
-    if (textMatch) {
+    if (column.isText) {
       return 'TEXT'
     }
 
-    const sizedMatch = tsType.match(/^Sized<([^,]+),\s*(\d+)>$/)
-    if (sizedMatch) {
-      const underlyingType = sizedMatch[1].trim()
-
-      if (underlyingType === 'string') {
-        const size = sizedMatch[2].trim()
-        return `VARCHAR(${size})`
+    if (column.size) {
+      if (column.tsType === 'string') {
+        return `VARCHAR(${column.size})`
       }
       return 'TEXT'
     }
 
-    switch (tsType) {
+    switch (column.tsType) {
       case 'string':
         sqlType = 'TEXT'
         break
@@ -40,12 +35,12 @@ export class SqliteDialect extends BaseDialect {
         sqlType = 'INTEGER'
         break
       default:
-        if (tsType.startsWith('JSONColumnType<')) {
-          // Keeping this here in case SQLite ever gets JSON type
+        // if (column.tsType.startsWith('JSONColumnType<')) {
+        //   // Keeping this here in case SQLite ever gets JSON type
+        //   sqlType = 'TEXT'
+        // } else {
           sqlType = 'TEXT'
-        } else {
-          sqlType = 'TEXT'
-        }
+        // }
     }
 
     return sqlType
