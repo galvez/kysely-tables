@@ -21,14 +21,18 @@ export type ConverterOptions = {
 }
 
 export interface ColumnDefinition {
+  tableName: string
+  interfaceName: string
   name: string
-  tsType: string
+  tsType?: string
   nullable: boolean
   isPrimaryKey?: boolean
   isUnique?: boolean
+  isText?: boolean
   defaultValue?: string
   referencesTable?: string
   referencesColumn?: string
+  size?: string
   onDelete?: 'no action' | 'cascade' | 'set null' | 'set default' | 'restrict'
   onUpdate?: 'no action' | 'cascade' | 'set null' | 'set default' | 'restrict'
   isGenerated?: boolean
@@ -39,6 +43,7 @@ export interface ColumnDefinition {
 
 export interface TableDefinition {
   name: string
+  interfaceName: string
   columns: ColumnDefinition[]
 }
 
@@ -52,12 +57,6 @@ export interface IndexDefinition {
 }
 
 export type Reference<_Table, _Column, T> = T
-export type Generated<T> = T
-export type ColumnType<
-  SelectType,
-  _InsertType = SelectType,
-  _UpdateType = SelectType,
-> = SelectType
 export type Unique<T> = T
 export type Default<T, _V> = T
 export type Primary<T> = T

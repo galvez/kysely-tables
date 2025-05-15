@@ -1,110 +1,86 @@
 import ts from 'typescript'
+import { ColumnDefinition } from './types'
 
-export function extractNormalizedTypeString(typeNode: ts.TypeNode): string {
+export function extractType(typeNode: ts.TypeNode, column: ColumnDefinition): string {
   if (ts.isUnionTypeNode(typeNode)) {
-    return typeNode.types.map((t) => extractNormalizedTypeString(t)).join(' | ')
+    const nullableType = extractNullableType(typeNode.getText())
+    if (nullableType) {
+      column.nullable = true
+      typeNode = nullableType as ts.TypeNode
+      column.tsType = typeNode.getText()
+    }
   }
+
 
   if (ts.isTypeReferenceNode(typeNode)) {
     const typeName = typeNode.typeName.getText()
-
-    if (
-      typeName === 'Reference' &&
-      typeNode.typeArguments &&
-      typeNode.typeArguments.length >= 3
-    ) {
-      const referencedTable = extractNormalizedTypeString(
-        typeNode.typeArguments[0],
-      )
-      const referencedColumn = extractNormalizedTypeString(
-        typeNode.typeArguments[1],
-      )
-      const keyType = extractNormalizedTypeString(typeNode.typeArguments[2])
-      return `Reference<${referencedTable}, ${referencedColumn}, ${keyType}>`
+    if (!typeNode.typeArguments) {
+      column.tsType ??= typeName
+      return typeName
     }
 
-    if (
-      typeName === 'Generated' &&
-      typeNode.typeArguments &&
-      typeNode.typeArguments.length >= 1
-    ) {
-      const underlyingType = extractNormalizedTypeString(
-        typeNode.typeArguments[0],
-      )
+    if (typeName === 'Reference' && typeNode.typeArguments && typeNode.typeArguments.length >= 3) {
+      column.referencesTable = extractType(typeNode.typeArguments[0], column)
+      column.referencesColumn = extractType(typeNode.typeArguments[1], column)
+      const keyType = extractType(typeNode.typeArguments[2], column)
+      column.tsType ??= keyType
+      return `Reference<${column.referencesTable}, ${column.referencesColumn}, ${keyType}>`
+    }
+
+    if (typeName === 'Generated' && typeNode.typeArguments && typeNode.typeArguments.length === 1) {
+      const underlyingType = extractType(typeNode.typeArguments[0], column)
+      column.tsType ??= underlyingType
+      column.isGenerated = true
       return `Generated<${underlyingType}>`
     }
 
-    if (
-      typeName === 'Unique' &&
-      typeNode.typeArguments &&
-      typeNode.typeArguments.length >= 1
-    ) {
-      const underlyingType = extractNormalizedTypeString(
-        typeNode.typeArguments[0],
-      )
+    if (typeName === 'Unique' && typeNode.typeArguments && typeNode.typeArguments.length >= 1) {
+      const underlyingType = extractType(typeNode.typeArguments[0], column)
+      column.tsType ??= underlyingType
+      column.isUnique = true
       return `Unique<${underlyingType}>`
     }
 
-    if (
-      typeName === 'Primary' &&
-      typeNode.typeArguments &&
-      typeNode.typeArguments.length >= 1
-    ) {
-      const underlyingType = extractNormalizedTypeString(
-        typeNode.typeArguments[0],
-      )
+    if (typeName === 'Primary' && typeNode.typeArguments && typeNode.typeArguments.length >= 1) {
+      const underlyingType = extractType(typeNode.typeArguments[0], column)
+      column.tsType ??= underlyingType
+      column.isPrimaryKey = true
       return `Primary<${underlyingType}>`
     }
 
-    if (
-      typeName === 'Default' &&
-      typeNode.typeArguments &&
-      typeNode.typeArguments.length === 2
-    ) {
-      const underlyingType = extractNormalizedTypeString(
-        typeNode.typeArguments[0],
-      )
-      const defaultValue = extractNormalizedTypeString(typeNode.typeArguments[1])
+    if (typeName === 'Default' && typeNode.typeArguments && typeNode.typeArguments.length === 2) {
+      const underlyingType = extractType(typeNode.typeArguments[0], column)
+      let defaultValue
+      if (ts.isLiteralTypeNode(typeNode.typeArguments[1]) &&
+        ts.isStringLiteral(typeNode.typeArguments[1].literal)) {
+        defaultValue = typeNode.typeArguments[1].getText().slice(1, -1)
+      } else {
+        defaultValue = typeNode.typeArguments[1].getText()
+      }
+      column.tsType ??= underlyingType
+      column.defaultValue = defaultValue
       return `Default<${underlyingType}, ${defaultValue}>`
     }
 
-    if (
-      typeName === 'Sized' &&
-      typeNode.typeArguments &&
-      typeNode.typeArguments.length === 2
-    ) {
-      const underlyingType = extractNormalizedTypeString(
-        typeNode.typeArguments[0],
-      )
-      const size = extractNormalizedTypeString(typeNode.typeArguments[1])
-      return `Sized<${underlyingType}, ${size}>`
+    if (typeName === 'Sized' && typeNode.typeArguments && typeNode.typeArguments.length === 2) {
+      const underlyingType = extractType(typeNode.typeArguments[0], column)
+      column.tsType ??= underlyingType
+      column.size = typeNode.typeArguments[1].getText()
+      return `Sized<${underlyingType}, ${column.size}>`
     }
 
-    if (
-      typeName === 'Text' &&
-      typeNode.typeArguments &&
-      typeNode.typeArguments.length === 1
-    ) {
-      const underlyingType = extractNormalizedTypeString(
-        typeNode.typeArguments[0],
-      )
+    if (typeName === 'Text' && typeNode.typeArguments && typeNode.typeArguments.length === 1) {
+      const underlyingType = extractType(typeNode.typeArguments[0], column)
+      column.isText = true
+      column.tsType ??= underlyingType
       return `Text<${underlyingType}>`
     }
 
-    if (
-      typeName === 'ColumnType' &&
-      typeNode.typeArguments &&
-      typeNode.typeArguments.length >= 1
-    ) {
-      const selectType = extractNormalizedTypeString(typeNode.typeArguments[0])
-      const insertType =
-        typeNode.typeArguments.length >= 2
-          ? extractNormalizedTypeString(typeNode.typeArguments[1])
-          : selectType
-      const updateType =
-        typeNode.typeArguments.length >= 3
-          ? extractNormalizedTypeString(typeNode.typeArguments[2])
-          : selectType
+    if (typeName === 'ColumnType' && typeNode.typeArguments && typeNode.typeArguments.length >= 1) {
+      const selectType = extractType(typeNode.typeArguments[0], column)
+      const insertType = extractType(typeNode.typeArguments[1], column)
+      const updateType = extractType(typeNode.typeArguments[2], column)
+      column.tsType = extractType(typeNode.typeArguments[0], column)
       return `ColumnType<${selectType}, ${insertType}, ${updateType}>`
     }
 
@@ -113,26 +89,35 @@ export function extractNormalizedTypeString(typeNode: ts.TypeNode): string {
 
   switch (typeNode.kind) {
     case ts.SyntaxKind.StringKeyword:
-      return 'string'
+      column.tsType = 'string'
+      break
     case ts.SyntaxKind.NumberKeyword:
-      return 'number'
+      column.tsType = 'number'
+      break
     case ts.SyntaxKind.BooleanKeyword:
-      return 'boolean'
+      column.tsType = 'boolean'
+      break
     case ts.SyntaxKind.NullKeyword:
-      return 'null'
+      column.nullable = true
+      column.tsType = 'null'
+      break
     case ts.SyntaxKind.UndefinedKeyword:
-      return 'undefined'
+      column.tsType = 'undefined'
+      break
     case ts.SyntaxKind.NeverKeyword:
-      return 'never'
+      column.tsType = 'never'
+      break
     default:
-      return typeNode.getText()
+      column.tsType = typeNode.getText()
   }
+
+  return column.tsType as string
 }
 
-export function extractNullableType(typeString: string): string | undefined {
+export function extractNullableType(typeString: string): ts.Node | undefined {
   const sourceFile = createSourceFragment(typeString)
 
-  let nullableType: string | undefined
+  let nullableType: ts.Node | undefined
 
   ts.forEachChild(sourceFile, (node: ts.Node) => {
     if (ts.isTypeAliasDeclaration(node)) {
@@ -145,188 +130,21 @@ export function extractNullableType(typeString: string): string | undefined {
             t.kind === ts.SyntaxKind.NullKeyword ||
             t.kind === ts.SyntaxKind.UndefinedKeyword ||
             (ts.isLiteralTypeNode(t) &&
-              (t.literal.kind === ts.SyntaxKind.NullKeyword ||
-                t.literal.kind === ts.SyntaxKind.UndefinedKeyword))
+              (t.literal.kind === ts.SyntaxKind.NullKeyword || t.literal.kind === ts.SyntaxKind.UndefinedKeyword))
           ) {
             continue
           }
-          nullableType = t.getText()
+          nullableType = t
         }
       }
     }
   })
+
   return nullableType
 }
 
-export function extractDefaultType(typeString: string): {
-  type: string
-  defaultValue: string | null
-} {
-  const sourceFile = createSourceFragment(typeString)
-
-  let typeWithDefault: string | null = null
-  let defaultValue: string | null = null
-
-  const visit = (nodeType: ts.Node) => {
-    if (
-      ts.isTypeReferenceNode(nodeType) &&
-      nodeType.typeName.getText() === 'Default' &&
-      nodeType.typeArguments?.length === 2) {
-      typeWithDefault = nodeType.typeArguments![0].getText()
-      const defaultArg = nodeType.typeArguments![1]
-      if (ts.isLiteralTypeNode(defaultArg) && ts.isStringLiteral(defaultArg.literal)) {
-        defaultValue = defaultArg.getText().slice(1, -1)
-      } else {
-        defaultValue = defaultArg.getText()
-      }
-    } else {
-      ts.forEachChild(nodeType, visit)
-    }
-  }
-
-  ts.forEachChild(sourceFile, (node: ts.Node) => {
-    if (
-      ts.isTypeAliasDeclaration(node) && 
-      ts.isTypeReferenceNode(node.type)
-    ) {
-      visit(node.type)
-    }
-  })
-
-  return {
-    type: typeWithDefault ?? typeString,
-    defaultValue,
-  }
-}
-
-
-export function extractSizedType(typeString: string, deep: boolean = false): {
-  sizedType: string | null
-  size: string | null
-} {
-  const sourceFile = createSourceFragment(typeString)
-
-  let sizedType: string | null = null
-  let size: string | null = null
-
-  const visit = (nodeType: ts.Node) => {
-    if (
-      ts.isTypeReferenceNode(nodeType) &&
-      nodeType.typeName.getText() === 'Sized' &&
-      nodeType.typeArguments?.length === 2) {
-      sizedType = nodeType.typeArguments![0].getText()
-      size = nodeType.typeArguments![1].getText()
-    } else if (deep) {
-      ts.forEachChild(nodeType, visit)
-    }
-  }
-
-  ts.forEachChild(sourceFile, (node: ts.Node) => {
-    if (
-      ts.isTypeAliasDeclaration(node) && 
-      ts.isTypeReferenceNode(node.type)
-    ) {
-      visit(node.type)
-    }
-  })
-
-  return { sizedType, size }
-}
-
-export function extractColumnType(typeString: string): { 
-  type: string | null,  
-  nullable: boolean 
-} {
-  const sourceFile = createSourceFragment(typeString)
-
-  let nullable: boolean = false
-  let columnType: string | null = null
-
-  ts.forEachChild(sourceFile, (node: ts.Node) => {
-    if (ts.isTypeAliasDeclaration(node)) {
-      if (
-        ts.isTypeReferenceNode(node.type) &&
-        node.type.typeName.getText() === 'ColumnType' &&
-        node.type.typeArguments?.length === 3
-      ) {
-        const originalType = node.type.typeArguments[0].getText()
-        const nullableType = extractNullableType(originalType)
-        if (nullableType) {
-          columnType = nullableType
-          nullable = true
-        } else {
-          columnType = originalType
-          for (const potentiallyNullable of [
-            extractNullableType(node.type.typeArguments[0].getText()),
-            extractNullableType(node.type.typeArguments[1].getText())
-          ]) {
-            if (potentiallyNullable) {
-              nullable = true
-            }
-          }
-        }
-        if (columnType) {
-          const { type: typeWithDefault, defaultValue } = extractDefaultType(columnType)
-          if (defaultValue) {
-            columnType = typeWithDefault
-          }
-        }
-      }
-    }
-  })
-
-  return { type: columnType, nullable }
-}
-
-export function extractReferenceType(typeString: string): { 
-  referenceType: string | undefined,
-  referencedInterface: string | undefined,
-  referencedColumn: string | undefined,
-} {
-  const sourceFile = createSourceFragment(typeString)
-
-  let referenceType
-  let referencedInterface
-  let referencedColumn
-
-  const visit = (nodeType: ts.Node) => {
-    if (
-      ts.isTypeReferenceNode(nodeType) &&
-      nodeType.typeName.getText() === 'Reference' &&
-      nodeType.typeArguments?.length === 3
-    ) {
-      referencedInterface = nodeType.typeArguments[0].getText()
-      referencedColumn = nodeType.typeArguments[1].getText().slice(1, -1)
-      referenceType = nodeType.typeArguments[2].getText()
-
-    } else {
-      ts.forEachChild(nodeType, visit)
-    }
-  }
-
-  ts.forEachChild(sourceFile, (node: ts.Node) => {
-    if (
-      ts.isTypeAliasDeclaration(node) && 
-      ts.isTypeReferenceNode(node.type)
-    ) {
-      visit(node.type)
-    }
-  })
-
-  return {
-    referenceType,
-    referencedInterface,
-    referencedColumn
-  }
-}
-
-
 export function extractKeysFromType(typeNode: ts.TypeNode): string[] {
-  if (
-    ts.isTypeReferenceNode(typeNode) &&
-    ts.isIdentifier(typeNode.typeName) &&
-    typeNode.typeName.text === 'Keys'
-  ) {
+  if (ts.isTypeReferenceNode(typeNode) && ts.isIdentifier(typeNode.typeName) && typeNode.typeName.text === 'Keys') {
     const columns: string[] = []
 
     if (typeNode.typeArguments && typeNode.typeArguments.length > 0) {
@@ -334,10 +152,7 @@ export function extractKeysFromType(typeNode: ts.TypeNode): string[] {
 
       if (ts.isTupleTypeNode(tupleType)) {
         for (const element of tupleType.elements) {
-          if (
-            ts.isLiteralTypeNode(element) &&
-            ts.isStringLiteral(element.literal)
-          ) {
+          if (ts.isLiteralTypeNode(element) && ts.isStringLiteral(element.literal)) {
             columns.push(element.literal.text)
           }
         }
@@ -356,11 +171,6 @@ export function extractKeysFromType(typeNode: ts.TypeNode): string[] {
   return []
 }
 
-function createSourceFragment(typeString: string): ts.SourceFile {
-  return ts.createSourceFile(
-    '#fragment',
-    `type T = ${typeString};`,
-    ts.ScriptTarget.Latest,
-    true,
-  )
+export function createSourceFragment(typeString: string): ts.SourceFile {
+  return ts.createSourceFile('#fragment', `type T = ${typeString};`, ts.ScriptTarget.Latest, true)
 }

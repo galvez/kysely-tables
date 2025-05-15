@@ -68,8 +68,8 @@ export class PostgresDialect extends BaseDialect {
         colDef += sqlType
 
         if (column.defaultValue) {
-          if (column.defaultValue === "'now()'") {
-            colDef += " DEFAULT now()"
+          if (column.defaultValue === "now()") {
+            colDef += ' DEFAULT now()'
           } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
             colDef += ' DEFAULT CURRENT_TIMESTAMP'
           } else {
@@ -87,9 +87,7 @@ export class PostgresDialect extends BaseDialect {
       }
 
       if (column.isUnique && !column.isPrimaryKey) {
-        constraints.push(
-          `  CONSTRAINT "${`${table.name}_${snakeCase(column.name)}_unique`}" UNIQUE("${column.name}")`,
-        )
+        constraints.push(`  CONSTRAINT "${`${table.name}_${snakeCase(column.name)}_unique`}" UNIQUE("${column.name}")`)
       }
 
       columnDefinitions.push(colDef)
@@ -120,9 +118,7 @@ export class PostgresDialect extends BaseDialect {
 
       if (indexSignatures.has(signature)) {
         throw new Error(
-          `Duplicate index detected: An index on table "${
-            index.tableName
-          }" with columns [${index.columns.join(
+          `Duplicate index detected: An index on table "${index.tableName}" with columns [${index.columns.join(
             ', ',
           )}] has been defined multiple times.`,
         )
@@ -145,14 +141,10 @@ export class PostgresDialect extends BaseDialect {
         indexName = `idx_${index.tableName}_${snakeCaseColumns.join('_')}`
       }
 
-      const indexType = index.options?.unique
-        ? 'CREATE UNIQUE INDEX'
-        : 'CREATE INDEX'
+      const indexType = index.options?.unique ? 'CREATE UNIQUE INDEX' : 'CREATE INDEX'
       const columns = index.columns.map((col) => `"${col}"`).join(', ')
 
-      indexStatements.push(
-        `${indexType} "${indexName}" ON "${index.tableName}"(${columns});`,
-      )
+      indexStatements.push(`${indexType} "${indexName}" ON "${index.tableName}"(${columns});`)
     }
 
     return indexStatements
@@ -170,11 +162,7 @@ export class PostgresDialect extends BaseDialect {
         const snakeCaseColumnName = snakeCase(column.name)
         const snakeCaseReferencedColumn = snakeCase(column.referencesColumn)
 
-        const constraintName = `${
-          snakeCaseColumnName
-        }_${
-          column.referencesTable
-        }_${snakeCaseReferencedColumn}_fk`
+        const constraintName = `${snakeCaseColumnName}_${column.referencesTable}_${snakeCaseReferencedColumn}_fk`
 
         let constraint = `  CONSTRAINT "${constraintName}" FOREIGN KEY("${column.name}") REFERENCES "${
           column.referencesTable

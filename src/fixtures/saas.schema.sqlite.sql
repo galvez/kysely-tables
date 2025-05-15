@@ -2,8 +2,8 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS "users" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  "name" VARCHAR(100),
-  "email" VARCHAR(255) NOT NULL UNIQUE,
+  "name" TEXT,
+  "email" TEXT NOT NULL UNIQUE,
   "passwordHash" TEXT NOT NULL,
   "role" TEXT DEFAULT 'member' NOT NULL,
   "createdAt" TEXT DEFAULT now() NOT NULL,
@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS "team_members" (
   "teamId" INTEGER NOT NULL,
   "role" TEXT NOT NULL,
   "joinedAt" TEXT NOT NULL,
-  FOREIGN KEY("userId") REFERENCES "users"("id"),
-  FOREIGN KEY("teamId") REFERENCES "teams"("id")
+  FOREIGN KEY("userId") REFERENCES "UsersTable"("'id'"),
+  FOREIGN KEY("teamId") REFERENCES "TeamsTable"("'id'")
 );
 
 CREATE TABLE IF NOT EXISTS "activity_log" (
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS "invitations" (
   "invitedBy" INTEGER NOT NULL,
   "invitedAt" TEXT DEFAULT now() NOT NULL,
   "status" TEXT NOT NULL,
-  FOREIGN KEY("teamId") REFERENCES "teams"("id"),
-  FOREIGN KEY("invitedBy") REFERENCES "users"("id")
+  FOREIGN KEY("teamId") REFERENCES "TeamsTable"("'id'"),
+  FOREIGN KEY("invitedBy") REFERENCES "UsersTable"("'id'")
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_team_members_team_id_user_id" ON "team_members" ("teamId", "userId");

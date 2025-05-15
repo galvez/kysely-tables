@@ -5,7 +5,7 @@
   "version": "0.0.1",
   "main": "dist/index.js",
   "scripts": {
-    "format": "prettier -w --no-semi --single-quote --bracket-same-line .",
+    "format": "prettier -w --no-semi --single-quote --bracket-same-line --print-width 120 .",
     "lint": "oxlint . && pnpm format",
     "test": "tsx src/index.test.ts"
   },

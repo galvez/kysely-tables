@@ -1,12 +1,8 @@
-import {
-  DialectAdapter,
-  TableDefinition,
-  IndexDefinition,
-} from '../types'
+import { DialectAdapter, TableDefinition, IndexDefinition } from '../types'
 
 export abstract class BaseDialect implements DialectAdapter {
   tables: TableDefinition[]
-  
+
   constructor(tables: TableDefinition[]) {
     this.tables = tables
   }
@@ -32,9 +28,7 @@ export abstract class BaseDialect implements DialectAdapter {
 
     const column = table.columns.find((col) => col.name === columnName)
     if (!column) {
-      throw new Error(
-        `Column "${columnName}" does not exist in table "${tableName}"`,
-      )
+      throw new Error(`Column "${columnName}" does not exist in table "${tableName}"`)
     }
   }
 }

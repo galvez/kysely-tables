@@ -1,4 +1,3 @@
-
 export interface WithNumberFieldsTable {
   field_number: number
   field_number_nullable: number | null

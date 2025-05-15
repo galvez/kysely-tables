@@ -1,9 +1,9 @@
 
 CREATE TABLE IF NOT EXISTS "users" (
   "id" serial PRIMARY KEY NOT NULL,
-  "name" varchar(100),
+  "name" varchar(255),
   "email" varchar(255) NOT NULL,
-  "passwordHash" text NOT NULL,
+  "passwordHash" varchar(255) NOT NULL,
   "role" varchar(255) DEFAULT 'member' NOT NULL,
   "createdAt" timestamp DEFAULT now() NOT NULL,
   "updatedAt" timestamp DEFAULT now() NOT NULL,
@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS "team_members" (
   "teamId" integer NOT NULL,
   "role" varchar(255) NOT NULL,
   "joinedAt" timestamp NOT NULL,
-  CONSTRAINT "user_id_users_id_fk" FOREIGN KEY("userId") REFERENCES "users"("id"),
-  CONSTRAINT "team_id_teams_id_fk" FOREIGN KEY("teamId") REFERENCES "teams"("id")
+  CONSTRAINT "user_id_UsersTable_'id'_fk" FOREIGN KEY("userId") REFERENCES "UsersTable"("'id'"),
+  CONSTRAINT "team_id_TeamsTable_'id'_fk" FOREIGN KEY("teamId") REFERENCES "TeamsTable"("'id'")
 );
 
 CREATE TABLE IF NOT EXISTS "activity_log" (
@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS "invitations" (
   "invitedBy" integer NOT NULL,
   "invitedAt" timestamp DEFAULT now() NOT NULL,
   "status" varchar(255) NOT NULL,
-  CONSTRAINT "team_id_teams_id_fk" FOREIGN KEY("teamId") REFERENCES "teams"("id"),
-  CONSTRAINT "invited_by_users_id_fk" FOREIGN KEY("invitedBy") REFERENCES "users"("id")
+  CONSTRAINT "team_id_TeamsTable_'id'_fk" FOREIGN KEY("teamId") REFERENCES "TeamsTable"("'id'"),
+  CONSTRAINT "invited_by_UsersTable_'id'_fk" FOREIGN KEY("invitedBy") REFERENCES "UsersTable"("'id'")
 );
 
 CREATE UNIQUE INDEX "idx_team_members_team_id_user_id" ON "team_members"("teamId", "userId");

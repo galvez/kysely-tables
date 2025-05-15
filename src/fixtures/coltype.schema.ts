@@ -1,5 +1,4 @@
-import { Generated, ColumnType } from 'kysely'
-import { Primary, Default } from 'kysely-tables'
+import { ColumnType } from 'kysely'
 
 export interface FooTable {
   field: ColumnType<Date, never, Date>

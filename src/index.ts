@@ -27,18 +27,13 @@ export type {
   UniqueIndex,
 } from './types'
 
-
 type CreateSQLSchemaFromFileOptions = {
   filePath: string
   fileName: string
   dialect: Dialect
 }
 
-export function createSQLSchemaFromFile({
-  filePath,
-  fileName,
-  dialect,
-}: CreateSQLSchemaFromFileOptions): string {
+export function createSQLSchemaFromFile({ filePath, fileName, dialect }: CreateSQLSchemaFromFileOptions): string {
   const kt = new KyselyTables({
     filePath,
     fileName,
@@ -53,11 +48,7 @@ type CreateSQLSchemaFromSourceOptions = {
   dialect: Dialect
 }
 
-export function createSQLSchemaFromSource({
-  source,
-  fileName,
-  dialect,
-}: CreateSQLSchemaFromSourceOptions): string {
+export function createSQLSchemaFromSource({ source, fileName, dialect }: CreateSQLSchemaFromSourceOptions): string {
   const kt = new KyselyTables({
     source,
     fileName,

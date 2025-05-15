@@ -112,12 +112,8 @@ export class SqliteDialect extends BaseDialect {
           column.referencesTable
         }"("${column.referencesColumn}")`
 
-        const onDelete = this.convertSQLiteReferentialAction(
-          column.onDelete || 'no action',
-        )
-        const onUpdate = this.convertSQLiteReferentialAction(
-          column.onUpdate || 'no action',
-        )
+        const onDelete = this.convertSQLiteReferentialAction(column.onDelete || 'no action')
+        const onUpdate = this.convertSQLiteReferentialAction(column.onUpdate || 'no action')
 
         if (onDelete !== 'NO ACTION') {
           constraint += ` ON DELETE ${onDelete}`
@@ -160,9 +156,7 @@ export class SqliteDialect extends BaseDialect {
 
       if (indexSignatures.has(signature)) {
         throw new Error(
-          `Duplicate index detected: An index on table "${
-            index.tableName
-          }" with columns [${index.columns.join(
+          `Duplicate index detected: An index on table "${index.tableName}" with columns [${index.columns.join(
             ', ',
           )}] has been defined multiple times.`,
         )
@@ -184,16 +178,10 @@ export class SqliteDialect extends BaseDialect {
         indexName = `idx_${index.tableName}_${snakeCaseColumns.join('_')}`
       }
 
-      const indexType = index.options?.unique
-        ? 'CREATE UNIQUE INDEX'
-        : 'CREATE INDEX'
+      const indexType = index.options?.unique ? 'CREATE UNIQUE INDEX' : 'CREATE INDEX'
       const columns = index.columns.map((col) => `"${col}"`).join(', ')
 
-      indexStatements.push(
-        `${indexType} IF NOT EXISTS "${indexName}" ON "${
-          index.tableName
-        }" (${columns});`,
-      )
+      indexStatements.push(`${indexType} IF NOT EXISTS "${indexName}" ON "${index.tableName}" (${columns});`)
     }
 
     return indexStatements
