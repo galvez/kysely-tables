@@ -1,2 +1,0 @@
-import Fastify from 'fastify'
-

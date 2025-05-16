@@ -15,8 +15,6 @@ export type {
 
 export type {
   Reference,
-  Generated,
-  ColumnType,
   Unique,
   Default,
   Primary,
