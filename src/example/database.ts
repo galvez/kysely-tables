@@ -1,6 +1,6 @@
 import SQLite3Database from 'better-sqlite3'
 // prettier-ignore
-import { createRunner, Unique, Default, Primary, Text, Sized } from 'kysely-tables'
+import { createDatabase, Unique, Default, Primary, Text, Sized } from 'kysely-tables'
 // prettier-ignore
 import { SqliteDialect, Generated, Insertable, Selectable, Updateable } from 'kysely'
 
@@ -23,7 +23,7 @@ export type User = Selectable<UsersTable>
 export type CreateUser = Insertable<UsersTable>
 export type UpdateUser = Updateable<UsersTable>
 
-export default createRunner<Database>({
+export default createDatabase<Database>({
   dialect: new SqliteDialect({
     database: new SQLite3Database('data.sqlite'),
   }),

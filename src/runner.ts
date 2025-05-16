@@ -16,7 +16,7 @@ import {
 
 const start = perf.now()
 
-export async function createRunner<Database>(config: KyselyConfig) {
+export async function createDatabase<Database>(config: KyselyConfig) {
   const argv = minimist(process.argv.slice(1))
 
   const database = new Kysely<Database>(config)
