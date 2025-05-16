@@ -76,11 +76,11 @@ export class SqliteDialect extends BaseDialect {
       if (column.isPrimaryKey && column.isGenerated) {
         colDef += 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
       } else {
-        const sqlType = this.buildColumn(column.tsType)
+        const sqlType = this.buildColumn(column)
         colDef += sqlType
 
         if (column.defaultValue) {
-          if (column.defaultValue === "'now()'") {
+          if (column.defaultValue === "now()") {
             colDef += " DEFAULT (datetime('now'))"
           } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
             colDef += ' DEFAULT CURRENT_TIMESTAMP'
