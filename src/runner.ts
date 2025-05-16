@@ -32,7 +32,7 @@ export async function createRunner<Database>(config: KyselyConfig) {
   }
 
   if (argv.apply) {
-    applySchemaRevisions<Database>(argv, database)
+    applySchemaRevision<Database>(argv, database)
   }
 
   return database
@@ -111,7 +111,7 @@ async function createSchemaRevision<Database>(
   })
 }
 
-async function applySchemaRevisions<Database>(
+async function applySchemaRevision<Database>(
   argv: ParsedArgs,
   database: Kysely<Database>,
 ) {
@@ -148,7 +148,7 @@ function readSource(sourceFilePath: string): Record<string, string> {
 }
 
 function success(log: string, globalStartOverride?: number) {
-  console.log(`${log} in ${now(globalStartOverride)}`)
+  console.log(`${log} in ${now(globalStartOverride)}ms`)
 }
 
 function now(globalStartOverride?: number) {

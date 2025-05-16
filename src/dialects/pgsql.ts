@@ -7,13 +7,19 @@ export class PostgresDialect extends BaseDialect {
     return ''
   }
 
-  buildSchemaReset(tables: TableDefinition[]) {
-    let sql = ''
+  buildSchemaReset(tables: TableDefinition[]): string[] {
+    const sql = []
     if (tables.length) {
-      sql += '\n'
       for (const table of this.tables) {
-        sql += `DROP TABLE IF EXISTS "${table.name}" CASCADE;\n`
+        sql.push(`DROP TABLE IF EXISTS "${table.name}" CASCADE;`)
       }
+    }
+    return sql
+  }
+
+  buildSchemaRevision(tables: TableDefinition[], tablesSnapshot: TableDefinition[]): string[] {
+    const sql = []
+    if (!tables.length) {
     }
     return sql
   }

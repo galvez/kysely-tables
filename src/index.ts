@@ -37,7 +37,7 @@ export function createSQLSchemaFromFile({
   filePath,
   fileName,
   dialect,
-}: CreateSQLSchemaFromFileOptions): string {
+}: CreateSQLSchemaFromFileOptions): string[] {
   const kt = new KyselyTables({
     filePath,
     fileName,
@@ -56,7 +56,7 @@ export function createSQLSchemaFromSource({
   source,
   fileName,
   dialect,
-}: CreateSQLSchemaFromSourceOptions): string {
+}: CreateSQLSchemaFromSourceOptions): string[] {
   const kt = new KyselyTables({
     source,
     fileName,
@@ -69,7 +69,7 @@ export function createSQLSchemaResetFromSource({
   source,
   fileName,
   dialect,
-}: CreateSQLSchemaFromSourceOptions): string {
+}: CreateSQLSchemaFromSourceOptions): string[] {
   const kt = new KyselyTables({
     source,
     fileName,
@@ -82,11 +82,11 @@ export function createSQLSchemaRevisionFromSnapshot({
   source,
   fileName,
   dialect,
-}: CreateSQLSchemaFromSourceOptions): string {
+}: CreateSQLSchemaFromSourceOptions): string[] {
   const kt = new KyselyTables({
     source,
     fileName,
     dialect,
   })
-  return kt.buildSchema()
+  return kt.buildSchemaRevision()
 }

@@ -19,6 +19,13 @@ export class SqliteDialect extends BaseDialect {
     return output
   }
 
+  buildSchemaRevision(tables: TableDefinition[], tablesSnapshot: TableDefinition[]): string[] {
+    const sql = []
+    if (!tables.length) {
+    }
+    return sql
+  }
+
   buildColumn(column: ColumnDefinition): string {
     let sqlType: string
 
