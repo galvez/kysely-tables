@@ -20,20 +20,44 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
 <table>
 <thead>
 <tr>
-<td><b>TypeScript</b></td>
-<td><b>SQL</b></td>
+<td><b>Type Utility</b></td>
+<td><b>Description</b></td>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>
 
-`column: Default<string, "'member'">`
+`Default<T, value>`
 
 </td>
 <td>
 
-`"column" varchar(255) DEFAULT 'member' NOT NULL`
+Generates `DEFAULT <value>` clauses.
+
+</td>
+</tr>
+<tr>
+<td>
+
+`Primary<T>`
+
+</td>
+<td>
+
+Generates `PRIMARY KEY` clauses.
+
+</td>
+</tr>
+<tr>
+<td>
+
+`Unique<T>`
+
+</td>
+<td>
+
+Generates `UNIQUE` clauses and associated indexes.
 
 </td>
 </tr>
