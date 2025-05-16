@@ -1,5 +1,15 @@
+import 'kysely-tables/runner'
+
+import { Pool } from 'pg'
+import { Kysely, PostgresDialect } from 'kysely'
 import { Generated, Insertable, Selectable, Updateable } from 'kysely'
 import { Unique, Default, Primary, Text, Sized } from 'kysely-tables'
+
+export const db = new Kysely<Database>({
+  dialect: new PostgresDialect({
+    pool: new Pool(),
+  }),
+})
 
 export interface UsersTable {
   id: Generated<Primary<number>>

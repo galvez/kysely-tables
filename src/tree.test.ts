@@ -4,12 +4,12 @@ import { ColumnDefinition } from './types'
 import { equal, deepEqual } from 'node:assert'
 import { extractType, extractNullableType, createSourceFragment } from './tree'
 
-// test.skip('extractNullableType()', () => {
-//   equal(extractNullableType('Date | undefined'), 'Date')
-//   equal(extractNullableType('null | string'), 'string')
-//   equal(typeof extractNullableType('null | string | Foobar'), 'undefined')
-//   equal(typeof extractNullableType('null | Date | string'), 'undefined')
-// })
+test('extractNullableType()', () => {
+  equal(extractNullableType('Date | undefined'), 'Date')
+  equal(extractNullableType('null | string'), 'string')
+  equal(typeof extractNullableType('null | string | Foobar'), 'undefined')
+  equal(typeof extractNullableType('null | Date | string'), 'undefined')
+})
 
 test('extractColumnType()', () => {
   testColumnTypeExtraction('Generated<Primary<number>>', {

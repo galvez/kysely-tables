@@ -11,7 +11,6 @@ export function extractType(typeNode: ts.TypeNode, column: ColumnDefinition): st
     }
   }
 
-
   if (ts.isTypeReferenceNode(typeNode)) {
     const typeName = typeNode.typeName.getText()
     if (!typeNode.typeArguments) {

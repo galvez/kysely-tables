@@ -129,7 +129,7 @@ export class KyselyTables {
   }
 
   #extractIndexesFromType(typeNode: ts.TypeNode): void {
-    if (ts.isIntersectionTypeNode(typeNode)) {
+    if (ts.isUnionTypeNode(typeNode)) {
       for (const type of typeNode.types) {
         this.#extractSingleIndex(type)
       }
