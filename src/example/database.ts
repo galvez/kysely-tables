@@ -23,7 +23,7 @@ export type User = Selectable<UsersTable>
 export type CreateUser = Insertable<UsersTable>
 export type UpdateUser = Updateable<UsersTable>
 
-export default createDatabase<Database>({
+export default await createDatabase<Database>({
   dialect: new SqliteDialect({
     database: new SQLite3Database('data.sqlite'),
   }),
