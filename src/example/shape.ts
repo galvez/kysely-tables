@@ -1,8 +1,8 @@
-import { Pool } from 'pg'
+import SQLite3Database from 'better-sqlite3'
 // prettier-ignore
 import { createRunner, Unique, Default, Primary, Text, Sized } from 'kysely-tables'
 // prettier-ignore
-import { PostgresDialect, Generated, Insertable, Selectable, Updateable } from 'kysely'
+import { SqliteDialect, Generated, Insertable, Selectable, Updateable } from 'kysely'
 
 export interface UsersTable {
   id: Generated<Primary<number>>
@@ -24,7 +24,7 @@ export type CreateUser = Insertable<UsersTable>
 export type UpdateUser = Updateable<UsersTable>
 
 export default createRunner<Database>({
-  dialect: new PostgresDialect({
-    pool: new Pool(),
+  dialect: new SqliteDialect({
+    database: new SQLite3Database('data.sqlite')
   }),
 })

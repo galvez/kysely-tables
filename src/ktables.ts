@@ -189,51 +189,56 @@ export class KyselyTables {
     }
   }
 
-  buildSchema(): string {
+  buildSchema(): string[] {
     this.#registerTables(this.sourceFile)
     this.#registerTableColumns(this.sourceFile)
     this.#registerIndexes(this.sourceFile)
 
     this.#adapter = new this.dialect(this.tables)
 
-    let sql = ''
+    let sql = []
 
     const preamble = this.#adapter.buildPreamble()
     if (preamble) {
-      sql += preamble + '\n'
+      sql.push(preamble)
     }
 
     if (this.tables.length) {
-      sql += '\n'
-
       for (const table of this.tables) {
-        sql += this.#adapter.buildTable(table)
-        sql += '\n\n'
+        sql.push(this.#adapter.buildTable(table))
       }
     }
 
     if (this.indexes.length > 0) {
       for (const index of this.#adapter.buildIndexes(this.indexes)) {
-        sql += `${index}\n`
+        sql.push(index)
       }
-      sql += '\n'
     }
 
     for (const table of this.tables) {
       for (const constraint of this.#adapter.buildReferences(table)) {
-        sql += `${constraint}\n\n`
+        sql.push(constraint)
       }
     }
 
     return sql
   }
 
-  buildSchemaReset(): string {
+  buildSchemaReset(): string[] {
     this.#registerTables(this.sourceFile)
     // TODO refactor to use a prepopulated Map for this.tables
     this.#registerTableColumns(this.sourceFile)
     this.#adapter = new this.dialect(this.tables)
 
     return this.#adapter.buildSchemaReset(this.tables)
+  }
+
+
+  buildSchemaRevision(tablesSnapshot: TableDefinition[]): string {
+    this.#registerTables(this.sourceFile)
+    this.#registerTableColumns(this.sourceFile)
+    this.#adapter = new this.dialect(this.tables)
+
+    return this.#adapter.buildSchemaRevision(this.tables, tablesSnapshot)
   }
 }

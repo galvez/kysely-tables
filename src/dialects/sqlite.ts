@@ -1,22 +1,22 @@
 import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
-import { TableDefinition, IndexDefinition } from '../types'
+import { TableDefinition, ColumnDefinition, IndexDefinition } from '../types'
 
 export class SqliteDialect extends BaseDialect {
   buildPreamble(): string {
     return 'PRAGMA foreign_keys = ON;'
   }
 
-  buildSchemaReset(tables: TableDefinition[]) {
-    let sql = ''
+  buildSchemaReset (tables: TableDefinition[]): string[] {
+    const output = []
     if (tables.length) {
-      sql += 'PRAGMA foreign_keys = OFF;\n\n'
+      output.push('PRAGMA foreign_keys = OFF;')
       for (const table of this.tables) {
-        sql += `DROP TABLE IF EXISTS "${table.name}";\n`
+        output.push(`DROP TABLE IF EXISTS "${table.name}";`)
       }
-      sql += 'PRAGMA foreign_keys = OFF;\n'
+      output.push('PRAGMA foreign_keys = OFF;')
     }
-    return sql
+    return output
   }
 
   buildColumn(column: ColumnDefinition): string {

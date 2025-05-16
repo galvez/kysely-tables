@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS "users" (
   "id" serial PRIMARY KEY NOT NULL,
   "name" varchar(100),
@@ -10,4 +9,3 @@ CREATE TABLE IF NOT EXISTS "users" (
   "deletedAt" timestamp,
   CONSTRAINT "users_email_unique" UNIQUE("email")
 );
-
