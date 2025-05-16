@@ -1,5 +1,7 @@
 import minimist, { ParsedArgs } from 'minimist'
 import pc from 'picocolors'
+import { Pool } from 'pg'
+import type { Database as SQLiteDatabase } from 'better-sqlite3'
 import { Kysely, KyselyConfig, CompiledQuery } from 'kysely'
 import { performance as perf } from 'node:perf_hooks'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'

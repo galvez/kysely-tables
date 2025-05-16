@@ -1,4 +1,4 @@
-export { createRunner } from './runner'
+export { createDatabase } from './runner'
 
 import { Dialect } from './types'
 import { KyselyTables } from './ktables'
