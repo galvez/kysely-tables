@@ -7,7 +7,7 @@ export class SqliteDialect extends BaseDialect {
     return 'PRAGMA foreign_keys = ON;'
   }
 
-  buildSchemaReset (tables: TableDefinition[]): string[] {
+  buildSchemaReset(tables: TableDefinition[]): string[] {
     const output = []
     if (tables.length) {
       output.push('PRAGMA foreign_keys = OFF;')

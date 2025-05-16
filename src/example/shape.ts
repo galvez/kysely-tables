@@ -25,6 +25,6 @@ export type UpdateUser = Updateable<UsersTable>
 
 export default createRunner<Database>({
   dialect: new SqliteDialect({
-    database: new SQLite3Database('data.sqlite')
+    database: new SQLite3Database('data.sqlite'),
   }),
 })

@@ -9,7 +9,7 @@ import {
   createSQLSchemaResetFromSource,
   // createSQLSchemaRevisionFromSource,
   PostgresDialect,
-  SqliteDialect
+  SqliteDialect,
 } from './index'
 
 const start = perf.now()
@@ -38,9 +38,13 @@ export async function createRunner<Database>(config: KyselyConfig) {
   return database
 }
 
-async function createSchema<Database>(argv: ParsedArgs, database: Kysely<Database>) {
-  const { source, sourceDir, sourceFileName, sourceBaseFileName } =
-    readSource(argv._[0])
+async function createSchema<Database>(
+  argv: ParsedArgs,
+  database: Kysely<Database>,
+) {
+  const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
+    argv._[0],
+  )
 
   const snapshotSchemaFileName = `${sourceBaseFileName}.sql`
   const snapshotSchemaFilePath = join(sourceDir, snapshotSchemaFileName)
@@ -67,9 +71,13 @@ async function createSchema<Database>(argv: ParsedArgs, database: Kysely<Databas
   success(`${pc.green('✔')} ${pc.cyan(generatedSchemaFileName)} written`)
 }
 
-async function resetSchema<Database>(argv: ParsedArgs, database: Kysely<Database>) {
-  const { source, sourceDir, sourceFileName, sourceBaseFileName } =
-    readSource(argv._[0])
+async function resetSchema<Database>(
+  argv: ParsedArgs,
+  database: Kysely<Database>,
+) {
+  const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
+    argv._[0],
+  )
 
   await database.transaction().execute(async (trx) => {
     for (const tableSchemaReset of createSQLSchemaResetFromSource({
@@ -83,9 +91,13 @@ async function resetSchema<Database>(argv: ParsedArgs, database: Kysely<Database
   })
 }
 
-async function createSchemaRevision<Database>(argv: ParsedArgs, database: Kysely<Database>) {
-  const { source, sourceDir, sourceFileName, sourceBaseFileName } =
-    readSource(argv._[0])
+async function createSchemaRevision<Database>(
+  argv: ParsedArgs,
+  database: Kysely<Database>,
+) {
+  const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
+    argv._[0],
+  )
 
   await database.transaction().execute(async (trx) => {
     for (const tableSchemaReset of createSQLSchemaResetFromSource({
@@ -99,9 +111,13 @@ async function createSchemaRevision<Database>(argv: ParsedArgs, database: Kysely
   })
 }
 
-async function applySchemaRevisions<Database>(argv: ParsedArgs, database: Kysely<Database>) {
-  const { source, sourceDir, sourceFileName, sourceBaseFileName } =
-    readSource(argv._[0])
+async function applySchemaRevisions<Database>(
+  argv: ParsedArgs,
+  database: Kysely<Database>,
+) {
+  const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
+    argv._[0],
+  )
 
   await database.transaction().execute(async (trx) => {
     for (const tableSchemaReset of createSQLSchemaResetFromSource({
@@ -114,7 +130,6 @@ async function applySchemaRevisions<Database>(argv: ParsedArgs, database: Kysely
     }
   })
 }
-
 
 function readSource(sourceFilePath: string): Record<string, string> {
   const { name, ext, dir } = parse(sourceFilePath)

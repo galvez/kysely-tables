@@ -8,7 +8,10 @@ export type Dialect =
 export interface DialectAdapter {
   buildPreamble(): string
   buildSchemaReset(tables: TableDefinition[]): string[]
-  buildSchemaRevision(tables: TableDefinition[], tablesSnapshot: TableDefinition[]): string[]
+  buildSchemaRevision(
+    tables: TableDefinition[],
+    tablesSnapshot: TableDefinition[],
+  ): string[]
   buildColumn(column: ColumnDefinition): string
   buildTable(table: TableDefinition): string
   buildIndexes(indexes: IndexDefinition[]): string[]

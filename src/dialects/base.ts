@@ -14,7 +14,10 @@ export abstract class BaseDialect implements DialectAdapter {
 
   abstract buildPreamble(): string
   abstract buildSchemaReset(tables: TableDefinition[]): string[]
-  abstract buildSchemaRevision(tables: TableDefinition[], tablesSnapshot: TableDefinition[]): string[]
+  abstract buildSchemaRevision(
+    tables: TableDefinition[],
+    tablesSnapshot: TableDefinition[],
+  ): string[]
   abstract buildColumn(column: ColumnDefinition): string
   abstract buildTable(table: TableDefinition): string
   abstract buildIndexes(indexes: IndexDefinition[]): string[]
