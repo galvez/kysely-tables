@@ -6,7 +6,14 @@ import { snakeCase } from 'scule'
 
 import { extractType, extractKeysFromType } from './tree'
 
-import { Dialect, DialectAdapter, ConverterOptions, TableDefinition, ColumnDefinition, IndexDefinition } from './types'
+import {
+  Dialect,
+  DialectAdapter,
+  BuildSchemaOptions,
+  TableDefinition,
+  ColumnDefinition,
+  IndexDefinition,
+} from './types'
 
 export class KyselyTables {
   private sourceFile: ts.SourceFile
@@ -17,7 +24,7 @@ export class KyselyTables {
 
   #adapter: DialectAdapter | null
 
-  constructor(options: ConverterOptions) {
+  constructor(options: BuildSchemaOptions) {
     this.tables = []
     this.tableInterfaces = new Set()
     this.dialect = options.dialect
@@ -35,7 +42,9 @@ export class KyselyTables {
         fileName = basename(options.filePath)
       } catch (error) {
         throw new Error(
-          `Failed to read file ${options.filePath}: ${error instanceof Error ? error.message : String(error)}`,
+          `Failed to read file ${options.filePath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         )
       }
     } else {
@@ -46,7 +55,12 @@ export class KyselyTables {
       throw new Error('Source code must be a string')
     }
 
-    this.sourceFile = ts.createSourceFile(fileName, sourceCode, ts.ScriptTarget.Latest, true)
+    this.sourceFile = ts.createSourceFile(
+      fileName,
+      sourceCode,
+      ts.ScriptTarget.Latest,
+      true,
+    )
   }
 
   #registerTables(node: ts.Node): void {
@@ -76,7 +90,11 @@ export class KyselyTables {
       const columns: ColumnDefinition[] = []
 
       for (const member of node.members) {
-        if (ts.isPropertySignature(member) && member.name && ts.isIdentifier(member.name)) {
+        if (
+          ts.isPropertySignature(member) &&
+          member.name &&
+          ts.isIdentifier(member.name)
+        ) {
           const columnName = member.name.text
 
           const column: ColumnDefinition = {
@@ -91,12 +109,11 @@ export class KyselyTables {
           }
 
           if (column.referencesTable) {
-            console.log('column.referencesTable', column.referencesTable)
-            console.log('this.tableInterfaces', this.tableInterfaces)
-            console.log(this.tableInterfaces.has(column.referencesTable))
             if (!this.tableInterfaces.has(column.referencesTable)) {
               throw new Error(
-                `Reference error: Interface "${column.referencesTable}" does not correspond to a valid table. Available tables are: ${Array.from(
+                `Reference error: Interface "${
+                  column.referencesTable
+                }" does not correspond to a valid table. Available tables are: ${Array.from(
                   this.tableInterfaces,
                 )
                   .map((t) => t + 'Table')
@@ -117,7 +134,9 @@ export class KyselyTables {
 
   #registerIndexes(node: ts.Node): void {
     if (ts.isTypeAliasDeclaration(node) && node.name.text === 'Indexes') {
-      const isExported = node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
+      const isExported = node.modifiers?.some(
+        (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+      )
       if (!isExported) {
         return
       }
@@ -139,7 +158,10 @@ export class KyselyTables {
   }
 
   #extractSingleIndex(typeNode: ts.TypeNode): void {
-    if (ts.isTypeReferenceNode(typeNode) && ts.isIdentifier(typeNode.typeName)) {
+    if (
+      ts.isTypeReferenceNode(typeNode) &&
+      ts.isIdentifier(typeNode.typeName)
+    ) {
       const typeName = typeNode.typeName.text
 
       if (typeName === 'Index' || typeName === 'UniqueIndex') {
@@ -147,7 +169,10 @@ export class KyselyTables {
           const tableType = typeNode.typeArguments[0]
           let tableName = ''
 
-          if (ts.isTypeReferenceNode(tableType) && ts.isIdentifier(tableType.typeName)) {
+          if (
+            ts.isTypeReferenceNode(tableType) &&
+            ts.isIdentifier(tableType.typeName)
+          ) {
             tableName = this.#getTableNameFromInterface(tableType.typeName.text)
           }
 
@@ -155,7 +180,8 @@ export class KyselyTables {
           const columns = extractKeysFromType(columnsType)
 
           if (tableName && columns.length > 0) {
-            const options = typeName === 'UniqueIndex' ? { unique: true } : undefined
+            const options =
+              typeName === 'UniqueIndex' ? { unique: true } : undefined
             this.indexes.push({ tableName, columns, options })
           }
         }
@@ -163,7 +189,7 @@ export class KyselyTables {
     }
   }
 
-  convert(): string {
+  buildSchema(): string {
     this.#registerTables(this.sourceFile)
     this.#registerTableColumns(this.sourceFile)
     this.#registerIndexes(this.sourceFile)
@@ -200,5 +226,14 @@ export class KyselyTables {
     }
 
     return sql
+  }
+
+  buildSchemaReset(): string {
+    this.#registerTables(this.sourceFile)
+    // TODO refactor to use a prepopulated Map for this.tables
+    this.#registerTableColumns(this.sourceFile)
+    this.#adapter = new this.dialect(this.tables)
+
+    return this.#adapter.buildSchemaReset(this.tables)
   }
 }

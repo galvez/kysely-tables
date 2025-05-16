@@ -3,7 +3,12 @@ import { ok } from 'node:assert'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { Dialect, createSQLSchemaFromSource, PostgresDialect, SqliteDialect } from './index'
+import {
+  Dialect,
+  createSQLSchemaFromSource,
+  PostgresDialect,
+  SqliteDialect,
+} from './index'
 
 const dev = process.argv.includes('--dev')
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -27,7 +32,10 @@ function makeTest(name: string) {
     const source = readFileSync(tsSchema, 'utf8')
 
     const outputs: [Dialect, string][] = [
-      [PostgresDialect, join(__dirname, 'fixtures', `${name}.schema.pgsql.sql`)],
+      [
+        PostgresDialect,
+        join(__dirname, 'fixtures', `${name}.schema.pgsql.sql`),
+      ],
       [SqliteDialect, join(__dirname, 'fixtures', `${name}.schema.sqlite.sql`)],
     ]
 

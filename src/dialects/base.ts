@@ -1,4 +1,9 @@
-import { DialectAdapter, TableDefinition, IndexDefinition, ColumnDefinition } from '../types'
+import {
+  DialectAdapter,
+  TableDefinition,
+  IndexDefinition,
+  ColumnDefinition,
+} from '../types'
 
 export abstract class BaseDialect implements DialectAdapter {
   tables: TableDefinition[]
@@ -8,6 +13,7 @@ export abstract class BaseDialect implements DialectAdapter {
   }
 
   abstract buildPreamble(): string
+  abstract buildSchemaReset(tables: TableDefinition[]): string
   abstract buildColumn(column: ColumnDefinition): string
   abstract buildTable(table: TableDefinition): string
   abstract buildIndexes(indexes: IndexDefinition[]): string[]
@@ -28,7 +34,9 @@ export abstract class BaseDialect implements DialectAdapter {
 
     const column = table.columns.find((col) => col.name === columnName)
     if (!column) {
-      throw new Error(`Column "${columnName}" does not exist in table "${tableName}"`)
+      throw new Error(
+        `Column "${columnName}" does not exist in table "${tableName}"`,
+      )
     }
   }
 }

@@ -1,15 +1,8 @@
-import 'kysely-tables/runner'
-
 import { Pool } from 'pg'
-import { Kysely, PostgresDialect } from 'kysely'
-import { Generated, Insertable, Selectable, Updateable } from 'kysely'
-import { Unique, Default, Primary, Text, Sized } from 'kysely-tables'
-
-export const db = new Kysely<Database>({
-  dialect: new PostgresDialect({
-    pool: new Pool(),
-  }),
-})
+// prettier-ignore
+import { createRunner, Unique, Default, Primary, Text, Sized } from 'kysely-tables'
+// prettier-ignore
+import { PostgresDialect, Generated, Insertable, Selectable, Updateable } from 'kysely'
 
 export interface UsersTable {
   id: Generated<Primary<number>>
@@ -29,3 +22,9 @@ export interface Database {
 export type User = Selectable<UsersTable>
 export type CreateUser = Insertable<UsersTable>
 export type UpdateUser = Updateable<UsersTable>
+
+export default createRunner<Database>({
+  dialect: new PostgresDialect({
+    pool: new Pool(),
+  }),
+})

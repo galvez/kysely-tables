@@ -1,6 +1,15 @@
 import { Generated } from 'kysely'
 
-import { Reference, Unique, Default, Primary, UniqueIndex, Keys, Text, Sized } from '../index.js'
+import {
+  Reference,
+  Unique,
+  Default,
+  Primary,
+  UniqueIndex,
+  Keys,
+  Text,
+  Sized,
+} from '../index.js'
 
 export interface UsersTable {
   id: Generated<Primary<number>>

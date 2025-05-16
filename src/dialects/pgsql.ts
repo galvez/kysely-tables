@@ -7,6 +7,17 @@ export class PostgresDialect extends BaseDialect {
     return ''
   }
 
+  buildSchemaReset(tables: TableDefinition[]) {
+    let sql = ''
+    if (tables.length) {
+      sql += '\n'
+      for (const table of this.tables) {
+        sql += `DROP TABLE IF EXISTS "${table.name}" CASCADE;\n`
+      }
+    }
+    return sql
+  }
+
   buildColumn(column: ColumnDefinition): string {
     let sqlType: string
 
@@ -38,8 +49,8 @@ export class PostgresDialect extends BaseDialect {
         // if (column.tsType.startsWith('JSONColumnType<')) {
         //   sqlType = 'jsonb'
         // } else {
-          sqlType = 'text'
-        // }
+        sqlType = 'text'
+      // }
     }
 
     return sqlType
@@ -61,7 +72,7 @@ export class PostgresDialect extends BaseDialect {
         colDef += sqlType
 
         if (column.defaultValue) {
-          if (column.defaultValue === "now()") {
+          if (column.defaultValue === 'now()') {
             colDef += ' DEFAULT now()'
           } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
             colDef += ' DEFAULT CURRENT_TIMESTAMP'
@@ -80,7 +91,9 @@ export class PostgresDialect extends BaseDialect {
       }
 
       if (column.isUnique && !column.isPrimaryKey) {
-        constraints.push(`  CONSTRAINT "${`${table.name}_${snakeCase(column.name)}_unique`}" UNIQUE("${column.name}")`)
+        constraints.push(
+          `  CONSTRAINT "${`${table.name}_${snakeCase(column.name)}_unique`}" UNIQUE("${column.name}")`,
+        )
       }
 
       columnDefinitions.push(colDef)
@@ -134,10 +147,14 @@ export class PostgresDialect extends BaseDialect {
         indexName = `idx_${index.tableName}_${snakeCaseColumns.join('_')}`
       }
 
-      const indexType = index.options?.unique ? 'CREATE UNIQUE INDEX' : 'CREATE INDEX'
+      const indexType = index.options?.unique
+        ? 'CREATE UNIQUE INDEX'
+        : 'CREATE INDEX'
       const columns = index.columns.map((col) => `"${col}"`).join(', ')
 
-      indexStatements.push(`${indexType} "${indexName}" ON "${index.tableName}"(${columns});`)
+      indexStatements.push(
+        `${indexType} "${indexName}" ON "${index.tableName}"(${columns});`,
+      )
     }
 
     return indexStatements

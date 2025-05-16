@@ -11,4 +11,3 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
 **Your Kysely types** become the **single source of truth** for your `CREATE TABLE` statements.
 
 **And also** for **creating and running migrations**, very much like Prisma and Drizzle.
-

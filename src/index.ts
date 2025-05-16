@@ -1,3 +1,5 @@
+export { createRunner } from './runner'
+
 import { Dialect } from './types'
 import { KyselyTables } from './ktables'
 
@@ -10,7 +12,7 @@ export type {
   ColumnDefinition,
   TableDefinition,
   IndexDefinition,
-  ConverterOptions,
+  BuildSchemaOptions,
 } from './types'
 
 export type {
@@ -31,13 +33,17 @@ type CreateSQLSchemaFromFileOptions = {
   dialect: Dialect
 }
 
-export function createSQLSchemaFromFile({ filePath, fileName, dialect }: CreateSQLSchemaFromFileOptions): string {
+export function createSQLSchemaFromFile({
+  filePath,
+  fileName,
+  dialect,
+}: CreateSQLSchemaFromFileOptions): string {
   const kt = new KyselyTables({
     filePath,
     fileName,
     dialect,
   })
-  return kt.convert()
+  return kt.buildSchema()
 }
 
 type CreateSQLSchemaFromSourceOptions = {
@@ -46,11 +52,41 @@ type CreateSQLSchemaFromSourceOptions = {
   dialect: Dialect
 }
 
-export function createSQLSchemaFromSource({ source, fileName, dialect }: CreateSQLSchemaFromSourceOptions): string {
+export function createSQLSchemaFromSource({
+  source,
+  fileName,
+  dialect,
+}: CreateSQLSchemaFromSourceOptions): string {
   const kt = new KyselyTables({
     source,
     fileName,
     dialect,
   })
-  return kt.convert()
+  return kt.buildSchema()
+}
+
+export function createSQLSchemaResetFromSource({
+  source,
+  fileName,
+  dialect,
+}: CreateSQLSchemaFromSourceOptions): string {
+  const kt = new KyselyTables({
+    source,
+    fileName,
+    dialect,
+  })
+  return kt.buildSchemaReset()
+}
+
+export function createSQLSchemaRevisionFromSnapshot({
+  source,
+  fileName,
+  dialect,
+}: CreateSQLSchemaFromSourceOptions): string {
+  const kt = new KyselyTables({
+    source,
+    fileName,
+    dialect,
+  })
+  return kt.buildSchema()
 }

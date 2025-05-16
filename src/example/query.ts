@@ -1,4 +1,3 @@
-
 import { db } from './schema'
 
 export function findUserById(id: number) {

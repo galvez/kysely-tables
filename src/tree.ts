@@ -1,7 +1,10 @@
 import ts from 'typescript'
 import { ColumnDefinition } from './types'
 
-export function extractType(typeNode: ts.TypeNode, column: ColumnDefinition): string {
+export function extractType(
+  typeNode: ts.TypeNode,
+  column: ColumnDefinition,
+): string {
   if (ts.isUnionTypeNode(typeNode)) {
     const nullableType = extractNullableType(typeNode.getText())
     if (nullableType) {
@@ -18,7 +21,11 @@ export function extractType(typeNode: ts.TypeNode, column: ColumnDefinition): st
       return typeName
     }
 
-    if (typeName === 'Reference' && typeNode.typeArguments && typeNode.typeArguments.length >= 3) {
+    if (
+      typeName === 'Reference' &&
+      typeNode.typeArguments &&
+      typeNode.typeArguments.length >= 3
+    ) {
       column.referencesTable = extractType(typeNode.typeArguments[0], column)
       column.referencesColumn = extractType(typeNode.typeArguments[1], column)
       const keyType = extractType(typeNode.typeArguments[2], column)
@@ -26,32 +33,50 @@ export function extractType(typeNode: ts.TypeNode, column: ColumnDefinition): st
       return `Reference<${column.referencesTable}, ${column.referencesColumn}, ${keyType}>`
     }
 
-    if (typeName === 'Generated' && typeNode.typeArguments && typeNode.typeArguments.length === 1) {
+    if (
+      typeName === 'Generated' &&
+      typeNode.typeArguments &&
+      typeNode.typeArguments.length === 1
+    ) {
       const underlyingType = extractType(typeNode.typeArguments[0], column)
       column.tsType ??= underlyingType
       column.isGenerated = true
       return `Generated<${underlyingType}>`
     }
 
-    if (typeName === 'Unique' && typeNode.typeArguments && typeNode.typeArguments.length >= 1) {
+    if (
+      typeName === 'Unique' &&
+      typeNode.typeArguments &&
+      typeNode.typeArguments.length >= 1
+    ) {
       const underlyingType = extractType(typeNode.typeArguments[0], column)
       column.tsType ??= underlyingType
       column.isUnique = true
       return `Unique<${underlyingType}>`
     }
 
-    if (typeName === 'Primary' && typeNode.typeArguments && typeNode.typeArguments.length >= 1) {
+    if (
+      typeName === 'Primary' &&
+      typeNode.typeArguments &&
+      typeNode.typeArguments.length >= 1
+    ) {
       const underlyingType = extractType(typeNode.typeArguments[0], column)
       column.tsType ??= underlyingType
       column.isPrimaryKey = true
       return `Primary<${underlyingType}>`
     }
 
-    if (typeName === 'Default' && typeNode.typeArguments && typeNode.typeArguments.length === 2) {
+    if (
+      typeName === 'Default' &&
+      typeNode.typeArguments &&
+      typeNode.typeArguments.length === 2
+    ) {
       const underlyingType = extractType(typeNode.typeArguments[0], column)
       let defaultValue
-      if (ts.isLiteralTypeNode(typeNode.typeArguments[1]) &&
-        ts.isStringLiteral(typeNode.typeArguments[1].literal)) {
+      if (
+        ts.isLiteralTypeNode(typeNode.typeArguments[1]) &&
+        ts.isStringLiteral(typeNode.typeArguments[1].literal)
+      ) {
         defaultValue = typeNode.typeArguments[1].getText().slice(1, -1)
       } else {
         defaultValue = typeNode.typeArguments[1].getText()
@@ -61,21 +86,33 @@ export function extractType(typeNode: ts.TypeNode, column: ColumnDefinition): st
       return `Default<${underlyingType}, ${defaultValue}>`
     }
 
-    if (typeName === 'Sized' && typeNode.typeArguments && typeNode.typeArguments.length === 2) {
+    if (
+      typeName === 'Sized' &&
+      typeNode.typeArguments &&
+      typeNode.typeArguments.length === 2
+    ) {
       const underlyingType = extractType(typeNode.typeArguments[0], column)
       column.tsType ??= underlyingType
       column.size = typeNode.typeArguments[1].getText()
       return `Sized<${underlyingType}, ${column.size}>`
     }
 
-    if (typeName === 'Text' && typeNode.typeArguments && typeNode.typeArguments.length === 1) {
+    if (
+      typeName === 'Text' &&
+      typeNode.typeArguments &&
+      typeNode.typeArguments.length === 1
+    ) {
       const underlyingType = extractType(typeNode.typeArguments[0], column)
       column.isText = true
       column.tsType ??= underlyingType
       return `Text<${underlyingType}>`
     }
 
-    if (typeName === 'ColumnType' && typeNode.typeArguments && typeNode.typeArguments.length >= 1) {
+    if (
+      typeName === 'ColumnType' &&
+      typeNode.typeArguments &&
+      typeNode.typeArguments.length >= 1
+    ) {
       const selectType = extractType(typeNode.typeArguments[0], column)
       const insertType = extractType(typeNode.typeArguments[1], column)
       const updateType = extractType(typeNode.typeArguments[2], column)
@@ -129,7 +166,8 @@ export function extractNullableType(typeString: string): ts.Node | undefined {
             t.kind === ts.SyntaxKind.NullKeyword ||
             t.kind === ts.SyntaxKind.UndefinedKeyword ||
             (ts.isLiteralTypeNode(t) &&
-              (t.literal.kind === ts.SyntaxKind.NullKeyword || t.literal.kind === ts.SyntaxKind.UndefinedKeyword))
+              (t.literal.kind === ts.SyntaxKind.NullKeyword ||
+                t.literal.kind === ts.SyntaxKind.UndefinedKeyword))
           ) {
             continue
           }
@@ -143,7 +181,11 @@ export function extractNullableType(typeString: string): ts.Node | undefined {
 }
 
 export function extractKeysFromType(typeNode: ts.TypeNode): string[] {
-  if (ts.isTypeReferenceNode(typeNode) && ts.isIdentifier(typeNode.typeName) && typeNode.typeName.text === 'Keys') {
+  if (
+    ts.isTypeReferenceNode(typeNode) &&
+    ts.isIdentifier(typeNode.typeName) &&
+    typeNode.typeName.text === 'Keys'
+  ) {
     const columns: string[] = []
 
     if (typeNode.typeArguments && typeNode.typeArguments.length > 0) {
@@ -151,7 +193,10 @@ export function extractKeysFromType(typeNode: ts.TypeNode): string[] {
 
       if (ts.isTupleTypeNode(tupleType)) {
         for (const element of tupleType.elements) {
-          if (ts.isLiteralTypeNode(element) && ts.isStringLiteral(element.literal)) {
+          if (
+            ts.isLiteralTypeNode(element) &&
+            ts.isStringLiteral(element.literal)
+          ) {
             columns.push(element.literal.text)
           }
         }
@@ -171,5 +216,10 @@ export function extractKeysFromType(typeNode: ts.TypeNode): string[] {
 }
 
 export function createSourceFragment(typeString: string): ts.SourceFile {
-  return ts.createSourceFile('#fragment', `type T = ${typeString};`, ts.ScriptTarget.Latest, true)
+  return ts.createSourceFile(
+    '#fragment',
+    `type T = ${typeString};`,
+    ts.ScriptTarget.Latest,
+    true,
+  )
 }

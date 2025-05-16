@@ -7,6 +7,18 @@ export class SqliteDialect extends BaseDialect {
     return 'PRAGMA foreign_keys = ON;'
   }
 
+  buildSchemaReset(tables: TableDefinition[]) {
+    let sql = ''
+    if (tables.length) {
+      sql += 'PRAGMA foreign_keys = OFF;\n\n'
+      for (const table of this.tables) {
+        sql += `DROP TABLE IF EXISTS "${table.name}";\n`
+      }
+      sql += 'PRAGMA foreign_keys = OFF;\n'
+    }
+    return sql
+  }
+
   buildColumn(column: ColumnDefinition): string {
     let sqlType: string
 
@@ -39,8 +51,8 @@ export class SqliteDialect extends BaseDialect {
         //   // Keeping this here in case SQLite ever gets JSON type
         //   sqlType = 'TEXT'
         // } else {
-          sqlType = 'TEXT'
-        // }
+        sqlType = 'TEXT'
+      // }
     }
 
     return sqlType
@@ -107,39 +119,11 @@ export class SqliteDialect extends BaseDialect {
           column.referencesTable
         }"("${column.referencesColumn}")`
 
-        const onDelete = this.convertSQLiteReferentialAction(column.onDelete || 'no action')
-        const onUpdate = this.convertSQLiteReferentialAction(column.onUpdate || 'no action')
-
-        if (onDelete !== 'NO ACTION') {
-          constraint += ` ON DELETE ${onDelete}`
-        }
-
-        if (onUpdate !== 'NO ACTION') {
-          constraint += ` ON UPDATE ${onUpdate}`
-        }
-
         constraints.push(constraint)
       }
     }
 
     return constraints
-  }
-
-  private convertSQLiteReferentialAction(action: string): string {
-    switch (action.toUpperCase()) {
-      case 'NO ACTION':
-        return 'NO ACTION'
-      case 'CASCADE':
-        return 'CASCADE'
-      case 'SET NULL':
-        return 'SET NULL'
-      case 'SET DEFAULT':
-        return 'SET DEFAULT'
-      case 'RESTRICT':
-        return 'RESTRICT'
-      default:
-        return 'NO ACTION'
-    }
   }
 
   buildIndexes(indexes: IndexDefinition[]): string[] {
@@ -173,10 +157,14 @@ export class SqliteDialect extends BaseDialect {
         indexName = `idx_${index.tableName}_${snakeCaseColumns.join('_')}`
       }
 
-      const indexType = index.options?.unique ? 'CREATE UNIQUE INDEX' : 'CREATE INDEX'
+      const indexType = index.options?.unique
+        ? 'CREATE UNIQUE INDEX'
+        : 'CREATE INDEX'
       const columns = index.columns.map((col) => `"${col}"`).join(', ')
 
-      indexStatements.push(`${indexType} IF NOT EXISTS "${indexName}" ON "${index.tableName}" (${columns});`)
+      indexStatements.push(
+        `${indexType} IF NOT EXISTS "${indexName}" ON "${index.tableName}" (${columns});`,
+      )
     }
 
     return indexStatements

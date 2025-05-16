@@ -7,13 +7,14 @@ export type Dialect =
 
 export interface DialectAdapter {
   buildPreamble(): string
+  buildSchemaReset(tables: TableDefinition[]): string
   buildColumn(column: ColumnDefinition): string
   buildTable(table: TableDefinition): string
   buildIndexes(indexes: IndexDefinition[]): string[]
   buildReferences(table: TableDefinition): string[]
 }
 
-export type ConverterOptions = {
+export type BuildSchemaOptions = {
   source?: string
   filePath?: string
   fileName: string
