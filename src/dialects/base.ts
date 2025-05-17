@@ -13,17 +13,23 @@ export abstract class BaseDialect implements DialectAdapter {
   }
 
   abstract buildPreamble(): string
-  abstract buildSchemaReset(tables: TableDefinition[]): string[]
-  abstract buildSchemaRevision(
+  abstract buildSchemaReset(tables?: TableDefinition[]): string[]
+  abstract buildSchemaRevisions(
     tables: TableDefinition[],
     tablesSnapshot: TableDefinition[],
-  ): string[]
+  ): { 
+    up: string[], 
+    down: string[]
+  }
   abstract buildColumn(column: ColumnDefinition): string
   abstract buildTable(table: TableDefinition): string
   abstract buildIndexes(indexes: IndexDefinition[]): string[]
   abstract buildReferences(table: TableDefinition): string[]
 
   protected validateTableExists(tableName: string): void {
+    if (!this.tables) {
+      throw new Error('Tables not populated for this instance')
+    }
     const table = this.tables.find((t) => t.name === tableName)
     if (!table) {
       throw new Error(`Table "${tableName}" does not exist`)
@@ -31,6 +37,9 @@ export abstract class BaseDialect implements DialectAdapter {
   }
 
   protected validateColumnExists(tableName: string, columnName: string): void {
+    if (!this.tables) {
+      throw new Error('Tables not populated for this instance')
+    }    
     const table = this.tables.find((t) => t.name === tableName)
     if (!table) {
       throw new Error(`Table "${tableName}" does not exist`)

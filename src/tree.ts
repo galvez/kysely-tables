@@ -222,29 +222,20 @@ export function extractDialect(sourceCode: string): Dialect | undefined {
   const sourceFile = createSource(sourceCode)
   let dialect: string | undefined
   const visit = (node: ts.Node) => {
-    if (ts.isCallExpression(node) && 
-        ts.isIdentifier(node.expression) && 
-        node.expression.text === 'createDatabase') {
-      const firstArg = node.arguments[0];
-      if (firstArg && ts.isObjectLiteralExpression(firstArg)) {
-        for (const property of firstArg.properties) {
-          if (ts.isPropertyAssignment(property) && 
-              ts.isIdentifier(property.name) && 
-              property.name.text === 'dialect') {
-            if (ts.isNewExpression(property.initializer) && 
-                ts.isIdentifier(property.initializer.expression)) {
-              dialect = property.initializer.expression.text;
-              return
-            }
-          }
-        }
+    if (ts.isVariableDeclaration(node) && 
+        node.initializer && 
+        ts.isNewExpression(node.initializer) &&
+        node.initializer.expression &&
+        ts.isIdentifier(node.initializer.expression)) {
+      const className = node.initializer.expression.text;
+      if (['SqliteDialect', 'PostgresDialect'].includes(className)) {
+        dialect = className
       }
     } else {
       ts.forEachChild(node, visit);
     }
   }
   ts.forEachChild(sourceFile, visit)
-
   if (dialect && dialects[dialect]) {
     return dialects[dialect]
   }

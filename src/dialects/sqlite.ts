@@ -1,6 +1,6 @@
 import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
-import { TableDefinition, ColumnDefinition, IndexDefinition } from '../types'
+import { Dialect, TableDefinition, ColumnDefinition, IndexDefinition } from '../types'
 import { diff as jsonDiff } from 'json-diff'
 
 export class SqliteDialect extends BaseDialect {
@@ -25,16 +25,18 @@ export class SqliteDialect extends BaseDialect {
     return `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}";`
   }
 
-  buildSchemaRevision(
+  buildSchemaRevisions(
     tables: TableDefinition[], 
     tablesSnapshot: TableDefinition[]
-  ): string[] {
-    const revision = []
+  ): {
+    up: string[],
+    down: string[]
+  } {
+    const revisions = { up: [], down: [] }
     const schemaDiff = jsonDiff(tablesSnapshot, tables) ?? []
     if (!schemaDiff.length) {
-      return []
+      return revisions
     }
-    const adapter = new SqliteDialect()
     for (const rev of schemaDiff) {
       switch (rev[0]) {
         case '~':
@@ -53,10 +55,12 @@ export class SqliteDialect extends BaseDialect {
           }
           break
         case '-':
-          revision.push(adapter.buildTableDrop(rev[1].name))
+          revisions.up.push(this.buildTableDrop(rev[1].name))
+          revisions.down.push(this.buildTable(rev[1]))
           break
         case '+':
-          revision.push(adapter.buildTable(rev[1]))
+          revisions.up.push(this.buildTable(rev[1]))
+          revisions.down.push(this.buildTableDrop(rev[1].name))
           break
       }
     }
@@ -64,7 +68,7 @@ export class SqliteDialect extends BaseDialect {
     // if (!tables.length) {
     // }
     // return sql
-    return revision
+    return revisions
   }
 
   buildColumn(column: ColumnDefinition): string {

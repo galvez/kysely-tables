@@ -1,17 +1,25 @@
+import type { Pool, PoolClient } from 'pg'
+import type { Database as SqliteDatabase } from 'better-sqlite3'
+
 import { PostgresDialect } from './dialects/pgsql'
 import { SqliteDialect } from './dialects/sqlite'
 
+export type DatabaseDriver = PoolClient | SqliteDatabase
+
 export type Dialect =
-  | (new (tables: TableDefinition[]) => PostgresDialect)
-  | (new (tables: TableDefinition[]) => SqliteDialect)
+  | (new (tables?: TableDefinition[]) => PostgresDialect)
+  | (new (tables?: TableDefinition[]) => SqliteDialect)
 
 export interface DialectAdapter {
   buildPreamble(): string
-  buildSchemaReset(tables: TableDefinition[]): string[]
-  buildSchemaRevision(
+  buildSchemaReset(tables?: TableDefinition[]): string[]
+  buildSchemaRevisions(
     tables: TableDefinition[],
     tablesSnapshot: TableDefinition[],
-  ): string[]
+  ): { 
+    up: string[], 
+    down: string[]
+  }
   buildColumn(column: ColumnDefinition): string
   buildTable(table: TableDefinition): string
   buildIndexes(indexes: IndexDefinition[]): string[]

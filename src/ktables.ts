@@ -239,9 +239,12 @@ export class KyselyTables {
     return this.#adapter.buildSchemaReset()
   }
 
-  buildSchemaRevision(tablesSnapshot: TableDefinition[]): string[] {
+  buildSchemaRevisions(tablesSnapshot: TableDefinition[]): {
+    up: string[],
+    down: string[]
+  } {
     this.registerTables()
     this.#adapter = new this.dialect(this.tables)
-    return this.#adapter.buildSchemaRevision(this.tables, tablesSnapshot)
+    return this.#adapter.buildSchemaRevisions(this.tables, tablesSnapshot)
   }
 }

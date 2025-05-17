@@ -1,21 +1,35 @@
 import minimist, { ParsedArgs } from 'minimist'
 import { log, confirm, isCancel } from '@clack/prompts'
 import pc from 'picocolors'
+import { kebabCase } from 'scule'
 import { Kysely, KyselyConfig, CompiledQuery } from 'kysely'
+import Postgrator from 'postgrator' 
+import { Pool as PostgresDriver } from 'pg'
+import SqliteDriver from 'better-sqlite3'
+
 import { performance as perf } from 'node:perf_hooks'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, parse } from 'node:path'
 import {
   createSQLSchemaFromSource,
   createSQLSchemaResetFromSource,
   createSQLSchemaRevision,
-  PostgresDialect,
-  SqliteDialect,
 } from './index'
+import type { DatabaseDriver } from './types'
 
 const start = perf.now()
 
-export function createDatabase<Database>(config: KyselyConfig) {
+type CreateDatabaseOptions = {
+  driver: DatabaseDriver, 
+  config: KyselyConfig,
+  name?: string
+}
+
+export function createDatabase<Database>({
+  driver, 
+  config,
+  name
+}: CreateDatabaseOptions) {
   const argv = minimist(process.argv.slice(1))
 
   const database = new Kysely<Database>(config)
@@ -29,7 +43,11 @@ export function createDatabase<Database>(config: KyselyConfig) {
   }
 
   if (argv.revision) {
-    createSchemaRevision<Database>(argv, database)
+    createSchemaRevision({
+      driver, 
+      config,
+      name
+    }, argv, driver)
   }
 
   return database
@@ -47,13 +65,14 @@ async function createSchema<Database>(
   const snapshotSchemaFileName = `${sourceBaseFileName}.snapshot.ts`
   const snapshotSchemaFilePath = join(sourceDir, snapshotSchemaFileName)
   if (!reset && existsSync(snapshotSchemaFilePath)) {
-    console.warn(
+    log.warn(
       pc.yellow(
-        `${pc.red('✖')} ${pc.cyan(
+        `${pc.cyan(
           snapshotSchemaFileName,
-        )} exists, did you mean to --reset?`,
+        )} exists, did you mean to ${pc.magenta('--reset')}?`,
       ),
     )
+    console.log()
     process.exit(1)
   }
   writeFileSync(snapshotSchemaFilePath, (
@@ -62,27 +81,38 @@ async function createSchema<Database>(
     '// for automatically generating schema revisions (migrations)\n\n' +
     source
   ))
-  log.info(timed(`${pc.cyan(snapshotSchemaFileName)} written`, perf.now()))
+  log.info(timed(`Created ${pc.cyan(snapshotSchemaFileName)}`, perf.now()))
 
   const generatedSchema = createSQLSchemaFromSource({
     source,
     fileName: sourceFileName,
-    dialect: SqliteDialect,
   })
 
   const generatedSchemaFileName = `${sourceBaseFileName}.sql`
   const generatedSchemaFilePath = join(sourceDir, generatedSchemaFileName)
   writeFileSync(generatedSchemaFilePath, generatedSchema.join('\n\n'))
-  log.info(timed(`${pc.cyan(generatedSchemaFileName)} written`))
+  log.info(timed(`Created ${pc.cyan(generatedSchemaFileName)}`))
 
-  const start = perf.now()
-  await database.transaction().execute(async (trx) => {
-    for (const tableSchema of generatedSchema) {
-      const query = CompiledQuery.raw(tableSchema)
-      await trx.executeQuery(query)
+  let shouldApply = argv.apply
+  if (!shouldApply) {
+    const apply = await confirm({
+      message: 'Apply new schema?'
+    })    
+    if (apply && !isCancel(apply)) {
+      shouldApply = true
     }
-  })
-  log.info(timed(`Database updated`, start))
+  }
+
+  if (shouldApply) {
+    const start = perf.now()
+    await database.transaction().execute(async (trx) => {
+      for (const tableSchema of generatedSchema) {
+        const query = CompiledQuery.raw(tableSchema)
+        await trx.executeQuery(query)
+      }
+    })
+    log.success(timed(`Database updated`, start))
+  }
   console.log()
 }
 
@@ -96,7 +126,6 @@ async function resetSchema<Database>(
     for (const tableSchemaReset of createSQLSchemaResetFromSource({
       source,
       fileName: sourceFileName,
-      dialect: SqliteDialect,
     })) {
       const query = CompiledQuery.raw(tableSchemaReset)
       await trx.executeQuery(query)
@@ -106,51 +135,85 @@ async function resetSchema<Database>(
   await createSchema(argv, database, true)
 }
 
-async function createSchemaRevision<Database>(
+async function createSchemaRevision(
+  options: CreateDatabaseOptions,
   argv: ParsedArgs,
-  database: Kysely<Database>,
+  driver: DatabaseDriver
 ) {
   const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
     argv._[0],
   )
+
   const snapshotFileName = `${sourceBaseFileName}.snapshot.ts`
   const snapshotFilePath = join(sourceDir, snapshotFileName)
+  if (!existsSync(snapshotFilePath)) {
+    log.warn(
+      pc.yellow(
+        `${pc.cyan(
+          snapshotFileName,
+        )} doesn't exist, ${
+          pc.magenta('--create')
+        } or ${
+          pc.magenta('--reset')
+        } your database first.`,
+      ),
+    )
+    console.log()
+    process.exit(1)
+  }
+
   const snapshotSource = readFileSync(snapshotFilePath, 'utf8')
   const revision = createSQLSchemaRevision({
     source,
     snapshotSource,
     snapshotFileName,
     fileName: sourceFileName,
-    dialect: SqliteDialect,
   })
 
-  if (!revision.length) {
+  if (!revision.up.length) {
     log.warn(`No changes detected.`)
     process.exit()
   }
 
-  for (const rev of revision) {
+  for (const rev of revision.up) {
     log.info(rev)
   }
 
-  if (argv.apply) {
-    log.success(timed(`Database updated`, perf.now()))
-  } else {
+  writeRevision(sourceDir, argv.revision, revision.up, revision.down)
+
+  let shouldApply = argv.apply
+  if (!shouldApply) {
     const apply = await confirm({
       message: 'Apply schema revision?'
     })    
-    if (apply && !isCancel(isCancel)) {
-      // success(`${pc.green('✔')} database updated`, perf.now())
-      log.success(timed(`Database updated`, perf.now()))
+    if (apply && !isCancel(apply)) {
+      shouldApply = true
     }
   }
 
-  // await database.transaction().execute(async (trx) => {
-  //   for (const stmt of revision) {
-  //     const query = CompiledQuery.raw(stmt)
-  //     await trx.executeQuery(query)
-  //   }
-  // })
+  if (shouldApply) {
+    const client = await getPostgratorClient(driver)
+
+    if (client) {
+      const postgrator = new Postgrator({
+        migrationPattern: join(sourceDir, 'revisions'),
+        driver: client.driver,
+        ...(client.driver === 'sqlite3') && {
+          betterSqlite3: true
+        },
+        database: options.name,
+        schemaTable: 'schemaversion',
+        execQuery: client.execQuery
+      })
+      await postgrator.migrate()
+      log.success(timed(`Database updated`, perf.now()))
+      process.exit()
+    } else {
+      log.error('An error occured connection to the database.')
+      console.log()
+      process.exit(1)
+    }
+  }
 }
 
 function readSource(sourceFilePath: string): Record<string, string> {
@@ -169,8 +232,73 @@ function readSource(sourceFilePath: string): Record<string, string> {
   }
 }
 
-function success(log: string, globalStartOverride?: number) {
-  console.log(`${log} in ${pc.magenta(`${now(globalStartOverride)}ms`)}`)
+function writeRevision(sourceDir: string, name: string, up: string[], down: string[]) {
+  const revisionsDir = join(sourceDir, 'revisions')
+  if (!existsSync(revisionsDir)) {
+    const start = perf.now()
+    mkdirSync(revisionsDir, { recursive: true })
+    log.warn(timed(`Created ${pc.cyan('revisions')} directory, add it to source control.`, start))
+  }
+  const revisions = [...new Set(
+    readdirSync(revisionsDir)
+      .filter(_ => _.match(/\d\d\d\.do/))
+      .map(_ => _.slice(0, 3))
+  )].sort()
+  const nextRevision = String(
+    revisions.length
+      ? parseInt(revisions.at(-1)!)
+      : '001'
+  ).padStart(3, '0')
+  
+  const revisionName = kebabCase(name.replace(/\s+/, '-'))
+  const doRevisionFileName = `${nextRevision}.do.${revisionName}.sql`
+  const undoRevisionFileName = `${nextRevision}.undo.${revisionName}.sql`
+  
+  {
+    const start = perf.now()
+    writeFileSync(join(revisionsDir, doRevisionFileName), up.join('\n\n'))
+    log.success(timed(`Created ${pc.cyan(`revisions/${doRevisionFileName}`)}`, start))
+  }
+  
+  {
+    const start = perf.now()
+    writeFileSync(join(revisionsDir, undoRevisionFileName), down.join('\n\n'))
+    log.success(timed(`Created ${pc.cyan(`revisions/${undoRevisionFileName}`)}`, start))
+  }
+}
+
+async function getPostgratorClient(
+  driver: DatabaseDriver
+): Promise<{
+  driver: string, 
+  execQuery: (query: string) => void
+} | undefined> {
+  if (driver instanceof PostgresDriver) {
+    const client = await driver.connect()
+    if (client) {
+      return {
+        driver: 'pg',
+        execQuery(query: string) {
+          return driver.query(query)
+        }
+      }
+    }
+  } else if (driver instanceof SqliteDriver) {
+    return {
+      driver: 'sqlite3',
+      execQuery(query: string) {
+        try {
+          return {
+            rows: driver.prepare(query).all()
+          }
+        } catch (err) {
+          console.log(err)
+          driver.prepare(query).run()
+          return { rows: [] }
+        }
+      }
+    }
+  }
 }
 
 function timed(log: string, globalStartOverride?: number) {

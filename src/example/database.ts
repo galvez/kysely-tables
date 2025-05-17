@@ -34,8 +34,12 @@ export type ActivityLog = Selectable<ActivityLogTable>
 export type CreateActivityLog = Insertable<ActivityLogTable>
 export type UpdateActivityLog = Updateable<ActivityLogTable>
 
-export default createDatabase<Database>({
-  dialect: new SqliteDialect({
-    database: new SQLite3Database('database.sqlite'),
-  }),
+const driver = new SQLite3Database('database.sqlite')
+const dialect = new SqliteDialect({ database: driver })
+
+export default createDatabase<Database>({ 
+  driver, 
+  config: { 
+    dialect
+  }
 })
