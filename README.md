@@ -41,7 +41,7 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
    
    In order for a table to recognized as such, the interface name needs to end with `Table`. Note also how we can use Kysely's [`Generated`](https://kysely-org.github.io/kysely-apidoc/types/Generated.html) type together with this library's schema types. Same is true for [`ColumnType`](https://kysely-org.github.io/kysely-apidoc/types/ColumnType.html).
 
-3. Still in `database.ts`, you'll notice how the Kysely database instance is created through a wrapper, `createDatabase()`, and also that `dialect` is exported directly from the top-level.
+3. Still in `database.ts`, you'll notice how the Kysely database instance is created through a wrapper, `createDatabase()`, and also that `dialect` is a top-level export.
 
    ```ts
    const driver = new SQLite3Database('database.sqlite')
