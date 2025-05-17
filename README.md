@@ -57,7 +57,25 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
    
    This is to ensure the **runner** knows which dialect to use.
 
-4. Now it gets interesting: instead of packing a CLI, `kysely-tables` turns your schema file into one. This is what the `createDatabase()` wrapper is responsible for: parsing and understanding certain CLI flags when this file is executed directly.
+4. Now it gets interesting: instead of packing a CLI, `kysely-tables` turns your schema file into one. This is what the `createDatabase()` wrapper is responsible for: parsing and understanding certain CLI flags when this file is executed directly. Let's see what this looks like:
+
+5. Let's begin by creating the database and applying the initial table schema:
+  
+   `% tsx database.tb --create`
+   
+   <img width="712" alt="SCR-20250517-eyxp" src="https://github.com/user-attachments/assets/85a51124-88f6-4b0a-805c-5b1316d153f2" />
+
+   Proceed and you'll see that `database.snapshot.ts` is also created.
+   
+   <img width="712" alt="SCR-20250517-ezkw" src="https://github.com/user-attachments/assets/26402d6e-aa44-4f3f-a25d-410808cc3670" />
+
+   This file is used for diffing purposes: when you change `database.ts`, the runner can know how the schema changed.
+
+   Let's create a **migration** now, or as this library refers to them, **schema revisions**.
+
+7. Edit `database.ts` and remove any column from any table. Then run:
+
+   `% tsx database.tb --revision "drop column"`
 
 ## Syntax
 
