@@ -4,9 +4,9 @@ import { SqliteDialect, Generated, Insertable, Selectable, Updateable } from 'ky
 
 export interface UsersTable {
   id: Generated<Primary<number>>
-  name: Sized<string, 100> | null
+  fname: Sized<string, 100> | null
   email: Unique<Sized<string, 255>>
-  passwordHash: Text<string>
+  passwordHash: string
   role: Default<string, "'member'">
   createdAt: Default<Date, 'now()'>
   updatedAt: Default<Date, 'now()'>
@@ -19,19 +19,6 @@ export interface ActivityLogTable {
   action: string
   timestamp: Date
   ipAddress: string | null
-}
-
-
-export interface TeamsTable {
-  id: number
-  name: string
-  createdAt: Default<Date, 'now()'>
-  updatedAt: Default<Date, 'now()'>
-  stripeCustomerId: Unique<string | null>
-  stripeSubscriptionId: Unique<string | null>
-  stripeProductId: string | null
-  planName: string | null
-  subscriptionStatus: string | null
 }
 
 export interface Database {

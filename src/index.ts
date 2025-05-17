@@ -83,19 +83,16 @@ export function createSQLSchemaRevision({
   fileName,
   snapshotSource,
   snapshotFileName,
-  dialect,
 }: CreateSQLSchemaRevisionOptions): string[] {
   const snapshot = new KyselyTables({
     source: snapshotSource,
     fileName: snapshotFileName,
-    dialect,
   })
   snapshot.registerTables()
 
   const tables = new KyselyTables({
     source,
     fileName,
-    dialect,
   })
 
   return tables.buildSchemaRevision(snapshot.tables)

@@ -1,4 +1,5 @@
 import minimist, { ParsedArgs } from 'minimist'
+import { log, confirm, isCancel } from '@clack/prompts'
 import pc from 'picocolors'
 import { Kysely, KyselyConfig, CompiledQuery } from 'kysely'
 import { performance as perf } from 'node:perf_hooks'
@@ -31,10 +32,6 @@ export function createDatabase<Database>(config: KyselyConfig) {
     createSchemaRevision<Database>(argv, database)
   }
 
-  if (argv.apply) {
-    applySchemaRevision<Database>(argv, database)
-  }
-
   return database
 }
 
@@ -65,7 +62,7 @@ async function createSchema<Database>(
     '// for automatically generating schema revisions (migrations)\n\n' +
     source
   ))
-  success(`${pc.green('✔')} ${pc.cyan(snapshotSchemaFileName)} written`, perf.now())
+  log.info(timed(`${pc.cyan(snapshotSchemaFileName)} written`, perf.now()))
 
   const generatedSchema = createSQLSchemaFromSource({
     source,
@@ -76,7 +73,7 @@ async function createSchema<Database>(
   const generatedSchemaFileName = `${sourceBaseFileName}.sql`
   const generatedSchemaFilePath = join(sourceDir, generatedSchemaFileName)
   writeFileSync(generatedSchemaFilePath, generatedSchema.join('\n\n'))
-  success(`${pc.green('✔')} ${pc.cyan(generatedSchemaFileName)} written`)
+  log.info(timed(`${pc.cyan(generatedSchemaFileName)} written`))
 
   const start = perf.now()
   await database.transaction().execute(async (trx) => {
@@ -85,7 +82,8 @@ async function createSchema<Database>(
       await trx.executeQuery(query)
     }
   })
-  success(`${pc.green('✔')} database updated`, start)
+  log.info(timed(`Database updated`, start))
+  console.log()
 }
 
 async function resetSchema<Database>(
@@ -126,7 +124,26 @@ async function createSchemaRevision<Database>(
     dialect: SqliteDialect,
   })
 
-  console.log(revision)
+  if (!revision.length) {
+    log.warn(`No changes detected.`)
+    process.exit()
+  }
+
+  for (const rev of revision) {
+    log.info(rev)
+  }
+
+  if (argv.apply) {
+    log.success(timed(`Database updated`, perf.now()))
+  } else {
+    const apply = await confirm({
+      message: 'Apply schema revision?'
+    })    
+    if (apply && !isCancel(isCancel)) {
+      // success(`${pc.green('✔')} database updated`, perf.now())
+      log.success(timed(`Database updated`, perf.now()))
+    }
+  }
 
   // await database.transaction().execute(async (trx) => {
   //   for (const stmt of revision) {
@@ -154,6 +171,10 @@ function readSource(sourceFilePath: string): Record<string, string> {
 
 function success(log: string, globalStartOverride?: number) {
   console.log(`${log} in ${pc.magenta(`${now(globalStartOverride)}ms`)}`)
+}
+
+function timed(log: string, globalStartOverride?: number) {
+  return `${log} in ${pc.magenta(`${now(globalStartOverride)}ms`)}`
 }
 
 function now(globalStartOverride?: number) {

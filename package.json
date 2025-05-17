@@ -20,6 +20,7 @@
   "author": "Jonas Galvez <jonasgalvez@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@clack/prompts": "^0.10.1",
     "@types/minimist": "^1.2.5",
     "deep-object-diff": "^1.1.9",
     "json-diff": "^1.0.6",

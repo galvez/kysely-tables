@@ -8,24 +8,34 @@ export class SqliteDialect extends BaseDialect {
     return 'PRAGMA foreign_keys = ON;'
   }
 
-  buildSchemaReset(tables: TableDefinition[]): string[] {
+  buildSchemaReset(tables?: TableDefinition[]): string[] {
     const output = []
-    if (tables.length) {
+    const iterable = tables ?? this.tables
+    if (iterable && iterable.length) {
       output.push('PRAGMA foreign_keys = OFF;')
-      for (const table of this.tables) {
-        output.push(`DROP TABLE IF EXISTS "${table.name}";`)
+      for (const table of iterable) {
+        output.push(this.buildTableDrop(table.name, true))
       }
       output.push('PRAGMA foreign_keys = OFF;')
     }
     return output
   }
 
+  buildTableDrop(name: string, ifExists?: boolean): string {
+    return `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}";`
+  }
+
   buildSchemaRevision(
     tables: TableDefinition[], 
     tablesSnapshot: TableDefinition[]
   ): string[] {
-    // console.log(JSON.stringify(tables, null, 2), JSON.stringify(tablesSnapshot, null, 2))
-    for (const rev of jsonDiff(tablesSnapshot, tables)) {
+    const revision = []
+    const schemaDiff = jsonDiff(tablesSnapshot, tables) ?? []
+    if (!schemaDiff.length) {
+      return []
+    }
+    const adapter = new SqliteDialect()
+    for (const rev of schemaDiff) {
       switch (rev[0]) {
         case '~':
           for (const columnRev of rev[1].columns) {
@@ -43,10 +53,10 @@ export class SqliteDialect extends BaseDialect {
           }
           break
         case '-':
-          console.log('table removed', rev[1].name)
+          revision.push(adapter.buildTableDrop(rev[1].name))
           break
         case '+':
-          console.log('table added', rev[1].name)
+          revision.push(adapter.buildTable(rev[1]))
           break
       }
     }
@@ -54,7 +64,7 @@ export class SqliteDialect extends BaseDialect {
     // if (!tables.length) {
     // }
     // return sql
-    return []
+    return revision
   }
 
   buildColumn(column: ColumnDefinition): string {

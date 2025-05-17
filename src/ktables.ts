@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { snakeCase } from 'scule'
 
-import { extractType, extractKeysFromType } from './tree'
+import { extractType, extractKeysFromType, extractDialect } from './tree'
 
 import {
   Dialect,
@@ -16,19 +16,19 @@ import {
 } from './types'
 
 export class KyselyTables {
-  tables: TableDefinition[] = []
-
-  private sourceFile: ts.SourceFile
-  private tableInterfaces: Set<string>
-  private indexes: IndexDefinition[] = []
-  private dialect: Dialect
-
+  tables: TableDefinition[]
+  dialect: Dialect
+  indexes: IndexDefinition[] = []
+  sourceFile: ts.SourceFile
+  #tableInterfaces: Set<string>
+  
   #adapter: DialectAdapter | null
 
   constructor(options: BuildSchemaOptions) {
     this.tables = []
-    this.tableInterfaces = new Set()
-    this.dialect = options.dialect
+    this.indexes = []
+
+    this.#tableInterfaces = new Set()
     this.#adapter = null
 
     let sourceCode: string
@@ -56,6 +56,8 @@ export class KyselyTables {
       throw new Error('Source code must be a string')
     }
 
+    this.dialect = options.dialect ?? extractDialect(sourceCode)
+
     this.sourceFile = ts.createSourceFile(
       fileName,
       sourceCode,
@@ -68,7 +70,7 @@ export class KyselyTables {
     if (ts.isInterfaceDeclaration(node)) {
       const interfaceName = node.name.text
       if (interfaceName.endsWith('Table')) {
-        this.tableInterfaces.add(interfaceName)
+        this.#tableInterfaces.add(interfaceName)
       }
     }
     ts.forEachChild(node, this.#registerTables.bind(this))
@@ -110,12 +112,12 @@ export class KyselyTables {
           }
 
           if (column.referencesTable) {
-            if (!this.tableInterfaces.has(column.referencesTable)) {
+            if (!this.#tableInterfaces.has(column.referencesTable)) {
               throw new Error(
                 `Reference error: Interface "${
                   column.referencesTable
                 }" does not correspond to a valid table. Available tables are: ${Array.from(
-                  this.tableInterfaces,
+                  this.#tableInterfaces,
                 )
                   .map((t) => t + 'Table')
                   .join(', ')}`,
@@ -234,7 +236,7 @@ export class KyselyTables {
   buildSchemaReset(): string[] {
     this.registerTables()
     this.#adapter = new this.dialect(this.tables)
-    return this.#adapter.buildSchemaReset(this.tables)
+    return this.#adapter.buildSchemaReset()
   }
 
   buildSchemaRevision(tablesSnapshot: TableDefinition[]): string[] {

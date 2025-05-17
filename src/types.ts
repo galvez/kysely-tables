@@ -22,7 +22,7 @@ export type BuildSchemaOptions = {
   source?: string
   filePath?: string
   fileName: string
-  dialect: Dialect
+  dialect?: Dialect
 }
 
 export interface ColumnDefinition {

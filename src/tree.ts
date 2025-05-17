@@ -1,5 +1,8 @@
 import ts from 'typescript'
-import { ColumnDefinition } from './types'
+import type { Dialect, ColumnDefinition } from './types'
+import { PostgresDialect, SqliteDialect } from './dialects'
+
+const dialects: Record<string, Dialect> = { PostgresDialect, SqliteDialect }
 
 export function extractType(
   typeNode: ts.TypeNode,
@@ -213,6 +216,47 @@ export function extractKeysFromType(typeNode: ts.TypeNode): string[] {
   }
 
   return []
+}
+
+export function extractDialect(sourceCode: string): Dialect | undefined {
+  const sourceFile = createSource(sourceCode)
+  let dialect: string | undefined
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && 
+        ts.isIdentifier(node.expression) && 
+        node.expression.text === 'createDatabase') {
+      const firstArg = node.arguments[0];
+      if (firstArg && ts.isObjectLiteralExpression(firstArg)) {
+        for (const property of firstArg.properties) {
+          if (ts.isPropertyAssignment(property) && 
+              ts.isIdentifier(property.name) && 
+              property.name.text === 'dialect') {
+            if (ts.isNewExpression(property.initializer) && 
+                ts.isIdentifier(property.initializer.expression)) {
+              dialect = property.initializer.expression.text;
+              return
+            }
+          }
+        }
+      }
+    } else {
+      ts.forEachChild(node, visit);
+    }
+  }
+  ts.forEachChild(sourceFile, visit)
+
+  if (dialect && dialects[dialect]) {
+    return dialects[dialect]
+  }
+}
+
+export function createSource(source: string): ts.SourceFile {
+  return ts.createSourceFile(
+    '#source',
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+  )
 }
 
 export function createSourceFragment(typeString: string): ts.SourceFile {
