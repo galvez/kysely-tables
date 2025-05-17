@@ -17,7 +17,7 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
 1. Check out this repository, `pnpm install` and `cd` to [`./example`](https://github.com/galvez/kysely-tables/tree/main/src/example).
 
 2. Inspect `database.ts` to see how tables are defined. Note that these types are fully Kysely-compatible. The schema types serve as hints for schema generation, but Kysely receives the underlying types it expects.
-
+   
    ```ts
    export interface UsersTable {
      id: Generated<Primary<number>>
@@ -39,7 +39,25 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
    }
    ```
    
-   In order for a table to recognized as such, the interface name needs to end with `Table`. Note also how we can use Kysely's `Generated` type together with this library's schema types.
+   In order for a table to recognized as such, the interface name needs to end with `Table`. Note also how we can use Kysely's [`Generated`](https://kysely-org.github.io/kysely-apidoc/types/Generated.html) type together with this library's schema types. Same is true for [`ColumnType`](https://kysely-org.github.io/kysely-apidoc/types/ColumnType.html).
+
+3. Still in `database.ts`, you'll notice how the Kysely database instance is created through a wrapper, `createDatabase()`, and also that `dialect` is exported directly from the top-level.
+
+   ```ts
+   const driver = new SQLite3Database('database.sqlite')
+   const dialect = new SqliteDialect({ database: driver })
+
+   export default createDatabase<Database>({
+     driver,
+     config: {
+       dialect,
+     },
+   })
+   ```
+   
+   This is to ensure the **runner** knows which dialect to use.
+
+4. Now it gets interesting: instead of packing a CLI, `kysely-tables` turns your schema file into one. This is what the `createDatabase()` wrapper is responsible for: parsing and understanding certain CLI flags when this file is executed directly.
 
 ## Syntax
 
