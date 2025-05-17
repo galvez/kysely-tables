@@ -1,8 +1,8 @@
 # kysely-tables
 
-An attempt to give [Kysely]() the same level of DX from [Prisma]() and [Drizzle]().
+<br><img width="492" src="https://github.com/user-attachments/assets/89f956f4-10a8-40e0-9a5c-73a9d9cb9bbf" />
 
-Use the **same Kysely types** for your **SQL table schema**, **migrations** and **queries**.
+<br>Use the **same Kysely types** for your **SQL table schema**, **migrations** and **queries**.
 
 - No need for an intermediary [schema defining API](https://orm.drizzle.team/docs/schemas) or [schema language](https://www.prisma.io/docs/orm/prisma-schema/overview).
 - No need to [connect to the database to retrieve the schema structure](https://github.com/RobinBlomberg/kysely-codegen).
