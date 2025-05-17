@@ -48,7 +48,8 @@ export class SqliteDialect extends BaseDialect {
           for (const columnRev of rev[1].columns) {
             switch (columnRev[0]) {
               case '+':
-                console.log(`table column added`, columnRev)
+                // revisions.up.push(this.buildTableDrop(rev[1].name))
+                // revisions.down.push(this.buildTable(rev[1]))
                 break
               case '-':
                 console.log(`table column removed`, columnRev)

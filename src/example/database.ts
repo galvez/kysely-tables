@@ -1,4 +1,5 @@
 import SQLite3Database from 'better-sqlite3'
+
 import {
   createDatabase,
   Unique,
@@ -8,6 +9,7 @@ import {
   Sized,
   Reference,
 } from 'kysely-tables'
+
 import {
   SqliteDialect,
   Generated,
@@ -20,7 +22,7 @@ export interface UsersTable {
   id: Generated<Primary<number>>
   fname: Sized<string, 100> | null
   email: Unique<Sized<string, 255>>
-  passwordHash: string
+  passwordHash: Text<string>
   role: Default<string, "'member'">
   createdAt: Default<Date, 'now()'>
   updatedAt: Default<Date, 'now()'>
