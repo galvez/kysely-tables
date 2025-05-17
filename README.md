@@ -75,7 +75,12 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
 
 7. Edit `database.ts` and remove any column from any table. Then run:
 
-   `% tsx database.tb --revision "drop column"`
+   `% tsx database.tb --revision`
+
+   <img width="512" alt="SCR-20250517-fnqr" src="https://github.com/user-attachments/assets/7a55b4ae-05b8-4598-a673-ee8fb93e75c5" />
+
+Even though `kysely-tables` is responsible for diffing and generating the SQL statements, the migrations run through [Postgrator](https://github.com/rickbergfalk/postgrator) under the hood. Postgrator is a mature and extremely well tested migration runner with support for PostgreSQL, SQLite, MySQL and MSSQL. It's used by [Platformatic](https://github.com/platformatic/platformatic).
+
 
 ## Syntax
 
