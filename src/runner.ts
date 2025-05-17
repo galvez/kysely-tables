@@ -1,7 +1,5 @@
 import minimist, { ParsedArgs } from 'minimist'
 import pc from 'picocolors'
-import { Pool } from 'pg'
-import type { Database as SQLiteDatabase } from 'better-sqlite3'
 import { Kysely, KyselyConfig, CompiledQuery } from 'kysely'
 import { performance as perf } from 'node:perf_hooks'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -9,7 +7,7 @@ import { join, parse } from 'node:path'
 import {
   createSQLSchemaFromSource,
   createSQLSchemaResetFromSource,
-  // createSQLSchemaRevisionFromSource,
+  createSQLSchemaRevision,
   PostgresDialect,
   SqliteDialect,
 } from './index'
@@ -94,9 +92,7 @@ async function resetSchema<Database>(
   argv: ParsedArgs,
   database: Kysely<Database>,
 ) {
-  const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
-    argv._[0],
-  )
+  const { source, sourceFileName } = readSource(argv._[0])
 
   await database.transaction().execute(async (trx) => {
     for (const tableSchemaReset of createSQLSchemaResetFromSource({
@@ -119,34 +115,19 @@ async function createSchemaRevision<Database>(
   const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
     argv._[0],
   )
-
-  await database.transaction().execute(async (trx) => {
-    for (const tableSchemaReset of createSQLSchemaResetFromSource({
-      source,
-      fileName: sourceFileName,
-      dialect: SqliteDialect,
-    })) {
-      const query = CompiledQuery.raw(tableSchemaReset)
-      await trx.executeQuery(query)
-    }
+  const revisionFileName = `${sourceBaseFileName}.snapshot.ts`
+  const revisionFilePath = join(sourceDir, revisionFileName)
+  const snapshotSource = readFileSync(revisionFilePath, 'utf8')
+  const revision = createSQLSchemaRevision({
+    source,
+    snapshotSource,
+    fileName: sourceFileName,
+    dialect: SqliteDialect,
   })
-}
-
-async function applySchemaRevision<Database>(
-  argv: ParsedArgs,
-  database: Kysely<Database>,
-) {
-  const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
-    argv._[0],
-  )
 
   await database.transaction().execute(async (trx) => {
-    for (const tableSchemaReset of createSQLSchemaResetFromSource({
-      source,
-      fileName: sourceFileName,
-      dialect: SqliteDialect,
-    })) {
-      const query = CompiledQuery.raw(tableSchemaReset)
+    for (const stmt of revision) {
+      const query = CompiledQuery.raw(stmt)
       await trx.executeQuery(query)
     }
   })

@@ -16,8 +16,9 @@ import {
 } from './types'
 
 export class KyselyTables {
+  tables: TableDefinition[] = []
+
   private sourceFile: ts.SourceFile
-  private tables: TableDefinition[]
   private tableInterfaces: Set<string>
   private indexes: IndexDefinition[] = []
   private dialect: Dialect

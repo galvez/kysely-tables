@@ -57,11 +57,7 @@ export function createSQLSchemaFromSource({
   fileName,
   dialect,
 }: CreateSQLSchemaFromSourceOptions): string[] {
-  const kt = new KyselyTables({
-    source,
-    fileName,
-    dialect,
-  })
+  const kt = new KyselyTables({ source, fileName, dialect })
   return kt.buildSchema()
 }
 
@@ -70,23 +66,36 @@ export function createSQLSchemaResetFromSource({
   fileName,
   dialect,
 }: CreateSQLSchemaFromSourceOptions): string[] {
-  const kt = new KyselyTables({
-    source,
-    fileName,
-    dialect,
-  })
+  const kt = new KyselyTables({ source, fileName, dialect })
   return kt.buildSchemaReset()
 }
 
-export function createSQLSchemaRevisionFromSnapshot({
+type CreateSQLSchemaRevisionOptions = {
+  source: string
+  fileName: string  
+  snapshotSource: string
+  snapshotFileName: string
+  dialect: Dialect
+}
+
+export function createSQLSchemaRevision({
   source,
   fileName,
+  snapshotSource,
+  snapshotFileName,
   dialect,
-}: CreateSQLSchemaFromSourceOptions): string[] {
-  const kt = new KyselyTables({
+}: CreateSQLSchemaRevisionOptions): string[] {
+  const snapshot = new KyselyTables({
+    source: snapshotSource,
+    fileName: snapshotFileName,
+    dialect,
+  })
+
+  const tables = new KyselyTables({
     source,
     fileName,
     dialect,
   })
-  return kt.buildSchemaRevision()
+
+  return tables.buildSchemaRevision(snapshot.tables)
 }
