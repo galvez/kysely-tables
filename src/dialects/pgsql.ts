@@ -17,7 +17,10 @@ export class PostgresDialect extends BaseDialect {
     return sql
   }
 
-  buildSchemaRevision(tables: TableDefinition[], tablesSnapshot: TableDefinition[]): string[] {
+  buildSchemaRevision(
+    tables: TableDefinition[],
+    tablesSnapshot: TableDefinition[],
+  ): string[] {
     const sql = []
     if (!tables.length) {
     }

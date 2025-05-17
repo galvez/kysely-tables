@@ -1,6 +1,20 @@
 import SQLite3Database from 'better-sqlite3'
-import { createDatabase, Unique, Default, Primary, Text, Sized, Reference } from 'kysely-tables'
-import { SqliteDialect, Generated, Insertable, Selectable, Updateable } from 'kysely'
+import {
+  createDatabase,
+  Unique,
+  Default,
+  Primary,
+  Text,
+  Sized,
+  Reference,
+} from 'kysely-tables'
+import {
+  SqliteDialect,
+  Generated,
+  Insertable,
+  Selectable,
+  Updateable,
+} from 'kysely'
 
 export interface UsersTable {
   id: Generated<Primary<number>>
@@ -37,9 +51,9 @@ export type UpdateActivityLog = Updateable<ActivityLogTable>
 const driver = new SQLite3Database('database.sqlite')
 const dialect = new SqliteDialect({ database: driver })
 
-export default createDatabase<Database>({ 
-  driver, 
-  config: { 
-    dialect
-  }
+export default createDatabase<Database>({
+  driver,
+  config: {
+    dialect,
+  },
 })

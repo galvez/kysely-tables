@@ -14,7 +14,6 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
 
 ## Tutorial
 
-
 ## Syntax
 
 <table>
@@ -77,7 +76,7 @@ export type Primary<T> = T
 export type Sized<T, _Size extends number> = T
 ```
 
-The main class uses a `DialectAdapter` to generate the correct SQL statements for the database used. 
+The main class uses a `DialectAdapter` to generate the correct SQL statements for the database used.
 
 As for parsing each column definition, it's done by a helper function called `extractType()`, which will check for all special types and use them to populate flags in each `ColumnDefinition`.
 
@@ -86,5 +85,3 @@ This should be enough for you to start digging and contribute if you wish!
 ## License
 
 MIT
-
-

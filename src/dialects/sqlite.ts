@@ -1,6 +1,11 @@
 import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
-import { Dialect, TableDefinition, ColumnDefinition, IndexDefinition } from '../types'
+import {
+  Dialect,
+  TableDefinition,
+  ColumnDefinition,
+  IndexDefinition,
+} from '../types'
 import { diff as jsonDiff } from 'json-diff'
 
 export class SqliteDialect extends BaseDialect {
@@ -26,10 +31,10 @@ export class SqliteDialect extends BaseDialect {
   }
 
   buildSchemaRevisions(
-    tables: TableDefinition[], 
-    tablesSnapshot: TableDefinition[]
+    tables: TableDefinition[],
+    tablesSnapshot: TableDefinition[],
   ): {
-    up: string[],
+    up: string[]
     down: string[]
   } {
     const revisions = { up: [], down: [] }
@@ -125,7 +130,7 @@ export class SqliteDialect extends BaseDialect {
         colDef += sqlType
 
         if (column.defaultValue) {
-          if (column.defaultValue === "now()") {
+          if (column.defaultValue === 'now()') {
             colDef += " DEFAULT (datetime('now'))"
           } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
             colDef += ' DEFAULT CURRENT_TIMESTAMP'

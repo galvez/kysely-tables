@@ -16,8 +16,8 @@ export interface DialectAdapter {
   buildSchemaRevisions(
     tables: TableDefinition[],
     tablesSnapshot: TableDefinition[],
-  ): { 
-    up: string[], 
+  ): {
+    up: string[]
     down: string[]
   }
   buildColumn(column: ColumnDefinition): string

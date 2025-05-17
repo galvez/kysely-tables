@@ -68,7 +68,7 @@ export function createSQLSchemaResetFromSource({
 
 type CreateSQLSchemaRevisionOptions = {
   source: string
-  fileName: string  
+  fileName: string
   snapshotSource: string
   snapshotFileName: string
 }
@@ -79,7 +79,7 @@ export function createSQLSchemaRevision({
   snapshotSource,
   snapshotFileName,
 }: CreateSQLSchemaRevisionOptions): {
-  up: string[],
+  up: string[]
   down: string[]
 } {
   const snapshot = new KyselyTables({

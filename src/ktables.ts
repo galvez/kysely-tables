@@ -21,7 +21,7 @@ export class KyselyTables {
   indexes: IndexDefinition[] = []
   sourceFile: ts.SourceFile
   #tableInterfaces: Set<string>
-  
+
   #adapter: DialectAdapter | null
 
   constructor(options: BuildSchemaOptions) {
@@ -227,7 +227,7 @@ export class KyselyTables {
     return sql
   }
 
-  registerTables () {
+  registerTables() {
     this.#registerTables(this.sourceFile)
     // TODO refactor to use a prepopulated Map for this.tables
     this.#registerTableColumns(this.sourceFile)
@@ -240,7 +240,7 @@ export class KyselyTables {
   }
 
   buildSchemaRevisions(tablesSnapshot: TableDefinition[]): {
-    up: string[],
+    up: string[]
     down: string[]
   } {
     this.registerTables()

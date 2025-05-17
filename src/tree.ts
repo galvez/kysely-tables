@@ -222,17 +222,19 @@ export function extractDialect(sourceCode: string): Dialect | undefined {
   const sourceFile = createSource(sourceCode)
   let dialect: string | undefined
   const visit = (node: ts.Node) => {
-    if (ts.isVariableDeclaration(node) && 
-        node.initializer && 
-        ts.isNewExpression(node.initializer) &&
-        node.initializer.expression &&
-        ts.isIdentifier(node.initializer.expression)) {
-      const className = node.initializer.expression.text;
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.initializer &&
+      ts.isNewExpression(node.initializer) &&
+      node.initializer.expression &&
+      ts.isIdentifier(node.initializer.expression)
+    ) {
+      const className = node.initializer.expression.text
       if (['SqliteDialect', 'PostgresDialect'].includes(className)) {
         dialect = className
       }
     } else {
-      ts.forEachChild(node, visit);
+      ts.forEachChild(node, visit)
     }
   }
   ts.forEachChild(sourceFile, visit)
@@ -242,12 +244,7 @@ export function extractDialect(sourceCode: string): Dialect | undefined {
 }
 
 export function createSource(source: string): ts.SourceFile {
-  return ts.createSourceFile(
-    '#source',
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-  )
+  return ts.createSourceFile('#source', source, ts.ScriptTarget.Latest, true)
 }
 
 export function createSourceFragment(typeString: string): ts.SourceFile {
