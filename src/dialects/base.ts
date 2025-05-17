@@ -26,6 +26,14 @@ export abstract class BaseDialect implements DialectAdapter {
   abstract buildIndexes(indexes: IndexDefinition[]): string[]
   abstract buildReferences(table: TableDefinition): string[]
 
+  buildAddColumn(column: any): string {
+    return `ALTER TABLE "${column.tableName}" ADD COLUMN${this.buildColumn(column)};`
+  }
+
+  buildDropColumn(column: any): string {
+    return `ALTER TABLE "${column.tableName}" DROP COLUMN "${column.name}";`
+  }
+
   protected validateTableExists(tableName: string): void {
     if (!this.tables) {
       throw new Error('Tables not populated for this instance')

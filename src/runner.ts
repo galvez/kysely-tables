@@ -248,7 +248,7 @@ function readSource(sourceFilePath: string): Record<string, string> {
 
 function writeRevision(
   sourceDir: string,
-  name: string,
+  name: string | boolean,
   up: string[],
   down: string[],
 ) {
@@ -257,10 +257,7 @@ function writeRevision(
     const start = perf.now()
     mkdirSync(revisionsDir, { recursive: true })
     log.warn(
-      timed(
-        `Created ${pc.cyan('revisions')} directory, add it to source control.`,
-        start,
-      ),
+      `Created ${pc.cyan('revisions')} directory, add it to source control.`,
     )
   }
   const revisions = [
@@ -274,7 +271,9 @@ function writeRevision(
     revisions.length ? parseInt(revisions.at(-1)!) : '001',
   ).padStart(3, '0')
 
-  const revisionName = kebabCase(name.replace(/\s+/, '-'))
+  const revisionName = name === true
+    ? new Date().getTime()
+    : kebabCase((name as string).replace(/\s+/g, '-'))
   const doRevisionFileName = `${nextRevision}.do.${revisionName}.sql`
   const undoRevisionFileName = `${nextRevision}.undo.${revisionName}.sql`
 
@@ -298,7 +297,7 @@ function writeRevision(
 async function getPostgratorClient(driver: DatabaseDriver): Promise<
   | {
       driver: string
-      execQuery: (query: string) => Promise<QueryResult> | { rows: unknown[] }
+      execQuery: (query: string) => Promise<{ rows: any[] }>
     }
   | undefined
 > {
@@ -317,13 +316,13 @@ async function getPostgratorClient(driver: DatabaseDriver): Promise<
       driver: 'sqlite3',
       execQuery(query: string) {
         try {
-          return {
+          return Promise.resolve({
             rows: driver.prepare(query).all(),
-          }
+          })
         } catch (err) {
           console.log(err)
           driver.prepare(query).run()
-          return { rows: [] }
+          return Promise.resolve({ rows: [] })
         }
       },
     }

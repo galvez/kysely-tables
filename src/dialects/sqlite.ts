@@ -37,22 +37,29 @@ export class SqliteDialect extends BaseDialect {
     up: string[]
     down: string[]
   } {
-    const revisions = { up: [], down: [] }
+    const revisions = { 
+      up: [] as string[], 
+      down: [] as string[]
+    }
     const schemaDiff = jsonDiff(tablesSnapshot, tables) ?? []
     if (!schemaDiff.length) {
       return revisions
     }
     for (const rev of schemaDiff) {
+      let revInfo
       switch (rev[0]) {
         case '~':
           for (const columnRev of rev[1].columns) {
             switch (columnRev[0]) {
               case '+':
-                // revisions.up.push(this.buildTableDrop(rev[1].name))
-                // revisions.down.push(this.buildTable(rev[1]))
+                revInfo = columnRev[1]
+                revisions.up.push(this.buildAddColumn(revInfo))
+                revisions.down.push(this.buildDropColumn(revInfo))
                 break
               case '-':
-                console.log(`table column removed`, columnRev)
+                revInfo = columnRev[1]
+                revisions.up.push(this.buildDropColumn(revInfo))
+                revisions.down.push(this.buildAddColumn(revInfo))
                 break
               case '~':
                 console.log(`table column changed`, columnRev)
@@ -77,7 +84,7 @@ export class SqliteDialect extends BaseDialect {
     return revisions
   }
 
-  buildColumn(column: ColumnDefinition): string {
+  buildColumnType(column: ColumnDefinition): string {
     let sqlType: string
 
     if (column.isText) {
@@ -116,44 +123,48 @@ export class SqliteDialect extends BaseDialect {
     return sqlType
   }
 
+  buildColumn(column: ColumnDefinition): string {
+    let colDef = `  "${column.name}" `
+
+    if (column.isPrimaryKey && column.isGenerated) {
+      colDef += 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
+    } else {
+      const sqlType = this.buildColumnType(column)
+      colDef += sqlType
+
+      if (column.defaultValue) {
+        if (column.defaultValue === 'now()') {
+          colDef += " DEFAULT (datetime('now'))"
+        } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
+          colDef += ' DEFAULT CURRENT_TIMESTAMP'
+        } else {
+          colDef += ` DEFAULT ${column.defaultValue}`
+        }
+      }
+
+      if (!column.nullable) {
+        colDef += ' NOT NULL'
+      }
+
+      if (column.isPrimaryKey && !column.isGenerated) {
+        colDef += ' PRIMARY KEY'
+      }
+    }
+
+    if (column.isUnique && !column.isPrimaryKey) {
+      colDef += ' UNIQUE'
+    }
+
+    return colDef
+  }
+
   buildTable(table: TableDefinition): string {
     let sql = `CREATE TABLE IF NOT EXISTS "${table.name}" (\n`
 
     const columnDefinitions: string[] = []
 
     for (const column of table.columns) {
-      let colDef = `  "${column.name}" `
-
-      if (column.isPrimaryKey && column.isGenerated) {
-        colDef += 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
-      } else {
-        const sqlType = this.buildColumn(column)
-        colDef += sqlType
-
-        if (column.defaultValue) {
-          if (column.defaultValue === 'now()') {
-            colDef += " DEFAULT (datetime('now'))"
-          } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
-            colDef += ' DEFAULT CURRENT_TIMESTAMP'
-          } else {
-            colDef += ` DEFAULT ${column.defaultValue}`
-          }
-        }
-
-        if (!column.nullable) {
-          colDef += ' NOT NULL'
-        }
-
-        if (column.isPrimaryKey && !column.isGenerated) {
-          colDef += ' PRIMARY KEY'
-        }
-      }
-
-      if (column.isUnique && !column.isPrimaryKey) {
-        colDef += ' UNIQUE'
-      }
-
-      columnDefinitions.push(colDef)
+      columnDefinitions.push(this.buildColumn(column))
     }
 
     sql += columnDefinitions.join(',\n')
