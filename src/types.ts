@@ -47,12 +47,7 @@ export interface ColumnDefinition {
   referencesTable?: string
   referencesColumn?: string
   size?: string
-  onDelete?: 'no action' | 'cascade' | 'set null' | 'set default' | 'restrict'
-  onUpdate?: 'no action' | 'cascade' | 'set null' | 'set default' | 'restrict'
   isGenerated?: boolean
-  insertType?: string
-  updateType?: string
-  isUpdateable?: boolean
 }
 
 export interface TableDefinition {
