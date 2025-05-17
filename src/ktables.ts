@@ -225,20 +225,21 @@ export class KyselyTables {
     return sql
   }
 
-  buildSchemaReset(): string[] {
+  registerTables () {
     this.#registerTables(this.sourceFile)
     // TODO refactor to use a prepopulated Map for this.tables
     this.#registerTableColumns(this.sourceFile)
-    this.#adapter = new this.dialect(this.tables)
+  }
 
+  buildSchemaReset(): string[] {
+    this.registerTables()
+    this.#adapter = new this.dialect(this.tables)
     return this.#adapter.buildSchemaReset(this.tables)
   }
 
   buildSchemaRevision(tablesSnapshot: TableDefinition[]): string[] {
-    this.#registerTables(this.sourceFile)
-    this.#registerTableColumns(this.sourceFile)
+    this.registerTables()
     this.#adapter = new this.dialect(this.tables)
-
     return this.#adapter.buildSchemaRevision(this.tables, tablesSnapshot)
   }
 }

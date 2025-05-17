@@ -1,6 +1,7 @@
 import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
 import { TableDefinition, ColumnDefinition, IndexDefinition } from '../types'
+import { diff as jsonDiff } from 'json-diff'
 
 export class SqliteDialect extends BaseDialect {
   buildPreamble(): string {
@@ -19,11 +20,41 @@ export class SqliteDialect extends BaseDialect {
     return output
   }
 
-  buildSchemaRevision(tables: TableDefinition[], tablesSnapshot: TableDefinition[]): string[] {
-    const sql = []
-    if (!tables.length) {
+  buildSchemaRevision(
+    tables: TableDefinition[], 
+    tablesSnapshot: TableDefinition[]
+  ): string[] {
+    // console.log(JSON.stringify(tables, null, 2), JSON.stringify(tablesSnapshot, null, 2))
+    for (const rev of jsonDiff(tablesSnapshot, tables)) {
+      switch (rev[0]) {
+        case '~':
+          for (const columnRev of rev[1].columns) {
+            switch (columnRev[0]) {
+              case '+':
+                console.log(`table column added`, columnRev)
+                break
+              case '-':
+                console.log(`table column removed`, columnRev)
+                break
+              case '~':
+                console.log(`table column changed`, columnRev)
+                break
+            }
+          }
+          break
+        case '-':
+          console.log('table removed', rev[1].name)
+          break
+        case '+':
+          console.log('table added', rev[1].name)
+          break
+      }
     }
-    return sql
+    // const sql = []
+    // if (!tables.length) {
+    // }
+    // return sql
+    return []
   }
 
   buildColumn(column: ColumnDefinition): string {

@@ -115,22 +115,25 @@ async function createSchemaRevision<Database>(
   const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
     argv._[0],
   )
-  const revisionFileName = `${sourceBaseFileName}.snapshot.ts`
-  const revisionFilePath = join(sourceDir, revisionFileName)
-  const snapshotSource = readFileSync(revisionFilePath, 'utf8')
+  const snapshotFileName = `${sourceBaseFileName}.snapshot.ts`
+  const snapshotFilePath = join(sourceDir, snapshotFileName)
+  const snapshotSource = readFileSync(snapshotFilePath, 'utf8')
   const revision = createSQLSchemaRevision({
     source,
     snapshotSource,
+    snapshotFileName,
     fileName: sourceFileName,
     dialect: SqliteDialect,
   })
 
-  await database.transaction().execute(async (trx) => {
-    for (const stmt of revision) {
-      const query = CompiledQuery.raw(stmt)
-      await trx.executeQuery(query)
-    }
-  })
+  console.log(revision)
+
+  // await database.transaction().execute(async (trx) => {
+  //   for (const stmt of revision) {
+  //     const query = CompiledQuery.raw(stmt)
+  //     await trx.executeQuery(query)
+  //   }
+  // })
 }
 
 function readSource(sourceFilePath: string): Record<string, string> {

@@ -90,6 +90,7 @@ export function createSQLSchemaRevision({
     fileName: snapshotFileName,
     dialect,
   })
+  snapshot.registerTables()
 
   const tables = new KyselyTables({
     source,

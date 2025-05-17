@@ -1,5 +1,5 @@
 import SQLite3Database from 'better-sqlite3'
-import { createDatabase, Unique, Default, Primary, Text, Sized } from 'kysely-tables'
+import { createDatabase, Unique, Default, Primary, Text, Sized, Reference } from 'kysely-tables'
 import { SqliteDialect, Generated, Insertable, Selectable, Updateable } from 'kysely'
 
 export interface UsersTable {
@@ -10,16 +10,42 @@ export interface UsersTable {
   role: Default<string, "'member'">
   createdAt: Default<Date, 'now()'>
   updatedAt: Default<Date, 'now()'>
-  deletedAt: null | Date
+}
+
+export interface ActivityLogTable {
+  id: number
+  teamId: number
+  userId: Reference<UsersTable, 'id', number>
+  action: string
+  timestamp: Date
+  ipAddress: string | null
+}
+
+
+export interface TeamsTable {
+  id: number
+  name: string
+  createdAt: Default<Date, 'now()'>
+  updatedAt: Default<Date, 'now()'>
+  stripeCustomerId: Unique<string | null>
+  stripeSubscriptionId: Unique<string | null>
+  stripeProductId: string | null
+  planName: string | null
+  subscriptionStatus: string | null
 }
 
 export interface Database {
   users: UsersTable
+  activityLog: ActivityLogTable
 }
 
 export type User = Selectable<UsersTable>
 export type CreateUser = Insertable<UsersTable>
 export type UpdateUser = Updateable<UsersTable>
+
+export type ActivityLog = Selectable<ActivityLogTable>
+export type CreateActivityLog = Insertable<ActivityLogTable>
+export type UpdateActivityLog = Updateable<ActivityLogTable>
 
 export default createDatabase<Database>({
   dialect: new SqliteDialect({
