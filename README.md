@@ -16,7 +16,7 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
 
 1. Check out this repository, `pnpm install` and `cd` to [`./example`](https://github.com/galvez/kysely-tables/tree/main/src/example).
 
-2. Inspect `database.ts` to see how tables are defined. Note that these types are fully Kysely-compatible. The schema-oriented types are used as annotations, but Kysely queries get at they expect.
+2. Inspect `database.ts` to see how tables are defined. Note that these types are fully Kysely-compatible. The schema types serve as hints for schema generation, but Kysely receives the underlying types it expects.
 
    ```ts
    export interface UsersTable {
@@ -130,14 +130,7 @@ Generates `UNIQUE` clauses and associated indexes.
 
 I wrote this because I was unhappy with the APIs and workflows available in other libraries. I wanted my database management layer to be extremely light, but also architected in an transparent way, that would make me feel like I know what's going behind the scenes.
 
-The main class is `KyselyTables`, which provides the `buildSchema()`, `buildSchemaReset()` and `buildSchemaRevision()` methods. The main code that analyzes the table interfaces and their column fields is `#registerTableColumns()`. They all use [TypeScript's compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API) to properly parse the source file, no regexes involved. The whole API is heavily inspired by Kysely, and of course, compatible with Kysely — the special types serve as hints for schema generation, but Kysely gets what it's expecting:
-
-```ts
-export type Unique<T> = T
-export type Default<T, _V> = T
-export type Primary<T> = T
-export type Sized<T, _Size extends number> = T
-```
+The main class is `KyselyTables`, which provides the `buildSchema()`, `buildSchemaReset()` and `buildSchemaRevision()` methods. The main code that analyzes the table interfaces and their column fields is `#registerTableColumns()`. They all use [TypeScript's compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API) to properly parse the source file, no regexes involved. The whole API is heavily inspired by Kysely, and of course, compatible with Kysely.
 
 The main class uses a `DialectAdapter` to generate the correct SQL statements for the database used.
 
