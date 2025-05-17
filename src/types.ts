@@ -20,7 +20,8 @@ export interface DialectAdapter {
     up: string[]
     down: string[]
   }
-  buildColumn(column: ColumnDefinition): string
+  buildTableDrop(name: string, ifExists?: boolean): string
+  buildColumn(column: ColumnDefinition, constraints?: string[]): string
   buildTable(table: TableDefinition): string
   buildIndexes(indexes: IndexDefinition[]): string[]
   buildReferences(table: TableDefinition): string[]

@@ -17,7 +17,7 @@ import {
 
 export class KyselyTables {
   tables: TableDefinition[]
-  dialect: Dialect
+  dialect?: Dialect
   indexes: IndexDefinition[] = []
   sourceFile: ts.SourceFile
   #tableInterfaces: Set<string>

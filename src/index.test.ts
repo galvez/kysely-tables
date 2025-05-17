@@ -43,7 +43,6 @@ function makeTest(name: string) {
       const output = createSQLSchemaFromSource({
         source,
         fileName: '#fragment',
-        dialect: dialect as Dialect,
       })
       if (dev) {
         writeFileSync(outputPath, output)

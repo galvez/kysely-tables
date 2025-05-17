@@ -17,17 +17,11 @@ export class PostgresDialect extends BaseDialect {
     return sql
   }
 
-  buildSchemaRevision(
-    tables: TableDefinition[],
-    tablesSnapshot: TableDefinition[],
-  ): string[] {
-    const sql = []
-    if (!tables.length) {
-    }
-    return sql
+  buildTableDrop(name: string, ifExists?: boolean): string {
+    return `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}";`
   }
 
-  buildColumn(column: ColumnDefinition): string {
+  buildColumnType(column: ColumnDefinition): string {
     let sqlType: string
 
     if (column.isText) {
@@ -65,6 +59,43 @@ export class PostgresDialect extends BaseDialect {
     return sqlType
   }
 
+  buildColumn(column: ColumnDefinition, constraints: string[]): string {
+    let colDef = `  "${column.name}" `
+
+    if (column.isPrimaryKey && column.isGenerated) {
+      colDef += 'serial PRIMARY KEY NOT NULL'
+    } else {
+      const sqlType = this.buildColumnType(column)
+      colDef += sqlType
+
+      if (column.defaultValue) {
+        if (column.defaultValue === 'now()') {
+          colDef += ' DEFAULT now()'
+        } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
+          colDef += ' DEFAULT CURRENT_TIMESTAMP'
+        } else {
+          colDef += ` DEFAULT ${column.defaultValue}`
+        }
+      }
+
+      if (!column.nullable) {
+        colDef += ' NOT NULL'
+      }
+
+      if (column.isPrimaryKey && !column.isGenerated) {
+        colDef += ' PRIMARY KEY'
+      }
+    }
+
+    if (column.isUnique && !column.isPrimaryKey) {
+      constraints.push(
+        `  CONSTRAINT "${`${column.tableName}_${snakeCase(column.name)}_unique`}" UNIQUE("${column.name}")`,
+      )
+    }
+
+    return colDef
+  }
+
   buildTable(table: TableDefinition): string {
     let sql = `CREATE TABLE IF NOT EXISTS "${table.name}" (\n`
 
@@ -72,39 +103,7 @@ export class PostgresDialect extends BaseDialect {
     const constraints: string[] = []
 
     for (const column of table.columns) {
-      let colDef = `  "${column.name}" `
-
-      if (column.isPrimaryKey && column.isGenerated) {
-        colDef += 'serial PRIMARY KEY NOT NULL'
-      } else {
-        const sqlType = this.buildColumn(column)
-        colDef += sqlType
-
-        if (column.defaultValue) {
-          if (column.defaultValue === 'now()') {
-            colDef += ' DEFAULT now()'
-          } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
-            colDef += ' DEFAULT CURRENT_TIMESTAMP'
-          } else {
-            colDef += ` DEFAULT ${column.defaultValue}`
-          }
-        }
-
-        if (!column.nullable) {
-          colDef += ' NOT NULL'
-        }
-
-        if (column.isPrimaryKey && !column.isGenerated) {
-          colDef += ' PRIMARY KEY'
-        }
-      }
-
-      if (column.isUnique && !column.isPrimaryKey) {
-        constraints.push(
-          `  CONSTRAINT "${`${table.name}_${snakeCase(column.name)}_unique`}" UNIQUE("${column.name}")`,
-        )
-      }
-
+      const colDef = this.buildColumn(column, constraints)
       columnDefinitions.push(colDef)
     }
 
