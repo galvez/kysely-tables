@@ -69,9 +69,7 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
    
    <img width="512" alt="SCR-20250517-ezkw" src="https://github.com/user-attachments/assets/26402d6e-aa44-4f3f-a25d-410808cc3670" />
 
-   This file is used for diffing purposes: when you change `database.ts`, the runner can know how the schema changed.
-
-   Let's create a **migration** now, or as this library refers to them, **schema revisions**.
+   This file is used for diffing purposes: when you change `database.ts`, the runner can know how the schema changed. Now let's create a **migration**, referred to as **schema revision** in this library.
 
 7. Edit `database.ts` and remove any column from any table. Then run:
 
