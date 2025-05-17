@@ -14,6 +14,33 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
 
 ## Tutorial
 
+1. Check out this repository, `pnpm install` and `cd` to [`./example`](https://github.com/galvez/kysely-tables/tree/main/src/example).
+
+2. Inspect `database.ts` to see how tables are defined. Note that these types are fully Kysely-compatible. The schema-oriented types are used as annotations, but Kysely queries get at they expect.
+
+   ```ts
+   export interface UsersTable {
+     id: Generated<Primary<number>>
+     fname: Sized<string, 100> | null
+     email: Unique<Sized<string, 255>>
+     passwordHash: Text<string>
+     role: Default<string, "'member'">
+     createdAt: Default<Date, 'now()'>
+     updatedAt: Default<Date, 'now()'>
+   }
+   
+   export interface ActivityLogTable {
+     id: number
+     teamId: number
+     userId: Reference<UsersTable, 'id', number>
+     action: string
+     timestamp: Date
+     ipAddress: string | null
+   }
+   ```
+   
+   In order for a table to recognized as such, the interface name needs to end with `Table`. Note also how we can use Kysely's `Generated` type together with this library's schema types.
+
 ## Syntax
 
 <table>
@@ -24,6 +51,42 @@ Use the **same Kysely types** for your **SQL table schema**, **migrations** and 
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+
+`Sized<T, Size extends number>`
+
+</td>
+<td>
+
+Generates `VARCHAR` columns (when available).
+
+</td>
+</tr>
+<tr>
+<td>
+
+`Text<T>`
+
+</td>
+<td>
+
+Generates `TEXT` columns.
+
+</td>
+</tr>
+<tr>
+<td>
+
+`Reference<Table, Key, T>`
+
+</td>
+<td>
+
+Generates `FOREIGN KEY` constraints.
+
+</td>
+</tr>
 <tr>
 <td>
 
