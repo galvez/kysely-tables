@@ -175,22 +175,21 @@ async function resetSchema<Database>(
   }
 
   if (shouldApply) {
-    console.log('!')
     const s = spinner()
     s.start('Updating database')
-    console.log('what the fuck')
     try {
       await database.transaction().execute(async (trx) => {
         for (const tableSchemaReset of createSQLSchemaResetFromSource({
           source,
           fileName: sourceFileName,
         })) {
-          const query = CompiledQuery.raw(tableSchemaReset)
-          await trx.executeQuery(query)
+          if (tableSchemaReset.sql) {
+            const query = CompiledQuery.raw(tableSchemaReset.sql)
+            await trx.executeQuery(query)
+          }
         }
       })
     } catch (err: unknown) {
-      console.log(err)
       if (err instanceof Error && err.message) {
         s.stop(pc.bold(pc.redBright('Cancelled.')))
         log.message()
@@ -246,7 +245,7 @@ async function createSchemaRevision(
   }
 
   for (const rev of revision.up) {
-    if (rev.invalid?.length > 0) {
+    if (rev.invalid && rev.invalid.length > 0) {
       for (const { key, message } of rev.invalid) {
         log.error(
           pc.redBright(
@@ -260,17 +259,21 @@ async function createSchemaRevision(
       process.exit(1)
     }
     if (rev.warning) {
-      log.info(rev.sql.split('\n').map(pc.whiteBright).join('\n'))
+      if (rev.sql) {
+        log.info(rev.sql.split('\n').map(pc.whiteBright).join('\n'))
+      }
       log.warn(rev.warning)
     } else {
-      log.info(rev.sql.split('\n').map(pc.whiteBright).join('\n'))
+      if (rev.sql) {
+        log.info(rev.sql.split('\n').map(pc.whiteBright).join('\n'))
+      }
     }
   }
 
   writeRevision(sourceDir, argv.revision, revision.up, 'do')
 
   for (const rev of revision.down) {
-    if (rev.invalid.length > 0) {
+    if (rev.invalid && rev.invalid.length > 0) {
       for (const { key, message } of rev.invalid) {
         log.error(
           pc.redBright(
@@ -283,7 +286,9 @@ async function createSchemaRevision(
       }
       process.exit(1)
     }
-    log.info(rev.sql.split('\n').map(pc.whiteBright).join('\n'))
+    if (rev.sql) {
+      log.info(rev.sql.split('\n').map(pc.whiteBright).join('\n'))
+    }
   }
 
   writeRevision(sourceDir, argv.revision, revision.down, 'undo')

@@ -22,9 +22,6 @@ export type {
   Primary,
   Sized,
   Text,
-  Keys,
-  Index,
-  UniqueIndex,
 } from './types'
 
 type CreateSQLSchemaFromFileOptions = {
@@ -60,7 +57,7 @@ export function createSQLSchemaFromSource({
 export function createSQLSchemaResetFromSource({
   source,
   fileName,
-}: CreateSQLSchemaFromSourceOptions): string[] {
+}: CreateSQLSchemaFromSourceOptions): SchemaRevisionStatement[] {
   const kt = new KyselyTables({ source, fileName })
   return kt.buildSchemaReset()
 }

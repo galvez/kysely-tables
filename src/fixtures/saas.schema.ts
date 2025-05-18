@@ -5,8 +5,6 @@ import {
   Unique,
   Default,
   Primary,
-  UniqueIndex,
-  Keys,
   Text,
   Sized,
 } from '../index.js'
@@ -60,8 +58,6 @@ export interface InvitationsTable {
   invitedAt: Default<Date, 'now()'>
   status: string
 }
-
-export type Indexes = UniqueIndex<TeamMembersTable, Keys<['teamId', 'userId']>>
 
 export enum ActivityType {
   SIGN_UP = 'SIGN_UP',

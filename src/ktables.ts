@@ -237,7 +237,7 @@ export class KyselyTables {
     this.#registerTableColumns(this.sourceFile)
   }
 
-  buildSchemaReset(): string[] {
+  buildSchemaReset(): SchemaRevisionStatement[] {
     this.registerTables()
     if (!this.dialect) {
       throw new Error('Missing `dialect` export.')
