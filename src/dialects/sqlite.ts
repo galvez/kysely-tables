@@ -5,6 +5,7 @@ import {
   TableDefinition,
   ColumnDefinition,
   IndexDefinition,
+  SchemaRevisionStatement,
 } from '../types'
 
 export class SqliteDialect extends BaseDialect {
@@ -18,15 +19,54 @@ export class SqliteDialect extends BaseDialect {
     if (iterable && iterable.length) {
       output.push('PRAGMA foreign_keys = OFF;')
       for (const table of iterable) {
-        output.push(this.buildTableDrop(table.name, true))
+        output.push(this.buildTableDrop(table.name, true).sql)
       }
       output.push('PRAGMA foreign_keys = OFF;')
     }
     return output
   }
 
-  buildTableDrop(name: string, ifExists?: boolean): string {
-    return `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}";`
+  buildTableDrop(name: string, ifExists?: boolean): SchemaRevisionStatement {
+    return { sql: `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}";` }
+  }
+
+  buildModifyColumn(tableName: string, columnDiff: any): SchemaRevisionStatement {
+      let rename
+      let invalid = []
+    const keys = Object.keys(columnDiff)
+    for (const key of keys) {
+      if (key === 'name' && columnDiff[key].__old) {
+        rename = `RENAME COLUMN "${columnDiff[key].__old}" to "${columnDiff[key].__new}"`
+      }
+      if (key.endsWith('__deleted') || key.endsWith('__added')) {
+        const [_key] = key.split(/((__deleted)|(__added))/) 
+        invalid.push({ 
+          key: columnDiff.__original.name, 
+          message: (
+            'SQLite doesn\'t support altering column types.\n' +
+            'First transfer data to a new column (expand)\n' + 
+            'and remove the old column later (contract).'
+          )
+        })
+      }
+    }
+    if (rename) {
+      return { 
+        sql: `ALTER TABLE "${tableName}" ${rename};`, 
+        warning: (
+         'Renaming columns is unsafe. In production,\n' + 
+         'first transfer data to a new column (expand)\n' + 
+         'and remove the old column later (contract).'
+        ),
+        invalid,
+      }
+    } else {
+      return { invalid }
+    }
+  }
+
+  buildRevertColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement[] {
+    return [{ sql: 'UNMODIFY COLUMN' }]
   }
 
   buildColumnType(column: ColumnDefinition): string {
@@ -68,11 +108,11 @@ export class SqliteDialect extends BaseDialect {
     return sqlType
   }
 
-  buildColumn(column: ColumnDefinition): string {
+  buildColumn(column: ColumnDefinition, constraints: string[]): string {
     let colDef = `  "${column.name}" `
 
-    if (column.isPrimaryKey && column.isGenerated) {
-      colDef += 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
+    if (column.isGenerated) {
+      colDef += 'INTEGER AUTOINCREMENT NOT NULL'
     } else {
       const sqlType = this.buildColumnType(column)
       colDef += sqlType
@@ -90,23 +130,32 @@ export class SqliteDialect extends BaseDialect {
       if (!column.nullable) {
         colDef += ' NOT NULL'
       }
+    }
 
-      if (column.isPrimaryKey && !column.isGenerated) {
-        colDef += ' PRIMARY KEY'
-      }
+    if (column.isPrimaryKey) {
+      constraints.push(
+        `  CONSTRAINT "${this.#getConstraintName(column, 'primary')}" PRIMARY KEY ("${column.name}")`,
+      )
     }
 
     if (column.isUnique && !column.isPrimaryKey) {
-      colDef += ' UNIQUE'
+      constraints.push(
+        `  CONSTRAINT "${this.#getConstraintName(column, 'unique')}" UNIQUE("${column.name}")`,
+      )
     }
 
     return colDef
+  }
+
+  #getConstraintName (column: ColumnDefinition, id: string) {
+    return `${column.tableName}_${snakeCase(column.name)}_${snakeCase(id)}}`
   }
 
   buildTable(table: TableDefinition): string {
     let sql = `CREATE TABLE IF NOT EXISTS "${table.name}" (\n`
 
     const columnDefinitions: string[] = []
+    const constraints: string[] = []
 
     for (const column of table.columns) {
       columnDefinitions.push(this.buildColumn(column))
@@ -117,6 +166,10 @@ export class SqliteDialect extends BaseDialect {
     const foreignKeys = this.buildTableLevelReferences(table)
     if (foreignKeys.length > 0) {
       sql += ',\n' + foreignKeys.join(',\n')
+    }
+
+    if (constraints.length > 0) {
+      sql += ',\n' + constraints.join(',\n')
     }
 
     sql += '\n);'

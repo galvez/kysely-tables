@@ -17,10 +17,12 @@ export interface DialectAdapter {
     tables: TableDefinition[],
     tablesSnapshot: TableDefinition[],
   ): {
-    up: string[]
-    down: string[]
+    up: SchemaRevisionStatement[]
+    down: SchemaRevisionStatement[]
   }
-  buildTableDrop(name: string, ifExists?: boolean): string
+  buildTableDrop(name: string, ifExists?: boolean): SchemaRevisionStatement
+  buildModifyColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement
+  buildRevertColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement
   buildColumn(column: ColumnDefinition, constraints?: string[]): string
   buildTable(table: TableDefinition): string
   buildIndexes(indexes: IndexDefinition[]): string[]
@@ -63,6 +65,11 @@ export interface IndexDefinition {
     unique?: boolean
     name?: string
   }
+}
+
+export type SchemaRevisionStatement = {
+  sql: string,
+  unsafe?: boolean
 }
 
 export type Reference<_Table, _Column, T> = T

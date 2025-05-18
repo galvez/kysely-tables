@@ -13,6 +13,7 @@ import {
   TableDefinition,
   ColumnDefinition,
   IndexDefinition,
+  SchemaRevisionStatement,
 } from './types'
 
 export class KyselyTables {
@@ -197,6 +198,10 @@ export class KyselyTables {
     this.#registerTableColumns(this.sourceFile)
     this.#registerIndexes(this.sourceFile)
 
+    if (!this.dialect) {
+      throw new Error('Missing `dialect` export.')
+    }
+
     this.#adapter = new this.dialect(this.tables)
 
     let sql = []
@@ -229,22 +234,36 @@ export class KyselyTables {
 
   registerTables() {
     this.#registerTables(this.sourceFile)
-    // TODO refactor to use a prepopulated Map for this.tables
     this.#registerTableColumns(this.sourceFile)
   }
 
   buildSchemaReset(): string[] {
     this.registerTables()
+    if (!this.dialect) {
+      throw new Error('Missing `dialect` export.')
+    }
     this.#adapter = new this.dialect(this.tables)
     return this.#adapter.buildSchemaReset()
   }
 
   buildSchemaRevisions(tablesSnapshot: TableDefinition[]): {
-    up: string[]
-    down: string[]
+    up: SchemaRevisionStatement[]
+    down: SchemaRevisionStatement[]
   } {
     this.registerTables()
+    if (!this.dialect) {
+      throw new Error('Missing `dialect` export.')
+    }
     this.#adapter = new this.dialect(this.tables)
-    return this.#adapter.buildSchemaRevisions(this.tables, tablesSnapshot)
+    return {
+      up: this.#adapter.buildSchemaRevisions(
+        structuredClone(this.tables), 
+        structuredClone(tablesSnapshot)
+      ),
+      down: this.#adapter.buildSchemaRevisions(
+        structuredClone(tablesSnapshot),
+        structuredClone(this.tables)
+      )
+    }
   }
 }

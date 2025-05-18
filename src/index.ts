@@ -1,6 +1,6 @@
 export { createDatabase } from './runner'
 
-import { Dialect } from './types'
+import { Dialect, SchemaRevisionStatement } from './types'
 import { KyselyTables } from './ktables'
 
 export { PostgresDialect, SqliteDialect } from './dialects'
@@ -60,9 +60,8 @@ export function createSQLSchemaFromSource({
 export function createSQLSchemaResetFromSource({
   source,
   fileName,
-  dialect,
 }: CreateSQLSchemaFromSourceOptions): string[] {
-  const kt = new KyselyTables({ source, fileName, dialect })
+  const kt = new KyselyTables({ source, fileName })
   return kt.buildSchemaReset()
 }
 
@@ -79,8 +78,8 @@ export function createSQLSchemaRevision({
   snapshotSource,
   snapshotFileName,
 }: CreateSQLSchemaRevisionOptions): {
-  up: string[]
-  down: string[]
+  up: SchemaRevisionStatement[]
+  down: SchemaRevisionStatement[]
 } {
   const snapshot = new KyselyTables({
     source: snapshotSource,

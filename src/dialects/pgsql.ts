@@ -1,24 +1,117 @@
 import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
-import { TableDefinition, IndexDefinition, ColumnDefinition } from '../types'
+import { TableDefinition, IndexDefinition, ColumnDefinition, SchemaRevisionStatement } from '../types'
 
 export class PostgresDialect extends BaseDialect {
   buildPreamble(): string {
     return ''
   }
 
-  buildSchemaReset(tables: TableDefinition[]): string[] {
-    const sql = []
-    if (tables.length) {
-      for (const table of this.tables) {
-        sql.push(`DROP TABLE IF EXISTS "${table.name}" CASCADE;`)
+  buildSchemaReset(tables?: TableDefinition[]): string[] {
+    const output = []
+    const iterable = tables ?? this.tables
+    if (iterable && iterable.length) {
+      for (const table of iterable) {
+        output.push(this.buildTableDrop(table.name, true).sql)
       }
     }
-    return sql
+    return output
   }
 
-  buildTableDrop(name: string, ifExists?: boolean): string {
-    return `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}";`
+  buildTableDrop(name: string, ifExists?: boolean): SchemaRevisionStatement {
+    return { sql: `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}" CASCADE;` }
+  }
+
+  buildModifyColumn(tableName: string, columnDiff: any): SchemaRevisionStatement {
+    let rename
+    const invalid = []
+    const changes = []
+    const keys = Object.keys(columnDiff)
+    for (const key of keys) {
+      if (key === 'name' && columnDiff[key].__old) {
+        rename = `RENAME COLUMN "${columnDiff[key].__old}" to "${columnDiff[key].__new}"`
+      }
+      if (!key.match(/((__deleted)|(__added))/)) {
+        if (columnDiff[key].__old) {
+          if (key === 'nullable') {
+            if (columnDiff[key].__new) {
+              changes.push('SET NOT NULL')
+            } else {
+              changes.push('DROP NOT NULL')
+            }
+          }
+        }
+      }
+      if (key.endsWith('__deleted')) {
+        const [_key] = key.split('__deleted') 
+        if (_key === 'nullable') {
+          changes.push('SET TYPE varchar(255)')
+        }
+        if (_key === 'size') {
+          changes.push('SET TYPE varchar(255)')
+        }
+        if (_key === 'defaultValue') {
+          changes.push(`DROP DEFAULT`)
+        }
+        if (_key === 'isUnique') {
+          changes.push(`DROP CONSTRAINT "${
+            this.#getConstraintName(columnDiff.__original, 'unique')
+          }"`)
+        }
+        if (_key === 'isPrimaryKey') {
+          changes.push(`DROP CONSTRAINT "${
+            this.#getConstraintName(columnDiff.__original, 'primary')
+          }"`)
+        }
+      }
+      if (key.endsWith('__added')) {
+        const [_key] = key.split('__added') 
+        if (_key === 'size') {
+          changes.push(`SET TYPE varchar(${columnDiff[key]})`)
+        }
+        if (_key === 'defaultValue') {
+          changes.push(`SET DEFAULT ${this.#buildDefaultValue(columnDiff[key])}`)
+        }
+        if (_key === 'isPrimary') {
+          changes.push(`ADD CONSTRAINT "${
+            this.#getConstraintName(columnDiff.__original, 'PRIMARY')
+          } PRIMARY KEY ("${
+            columnDiff.__original.name
+          }")`)
+        }
+        if (_key === 'isUnique') {
+          changes.push(`ADD CONSTRAINT "${
+            this.#getConstraintName(columnDiff.__original, 'unique')
+          }" UNIQUE ("${
+            columnDiff.__original.name
+          }")`)
+        }
+      }
+    }
+    if (rename) {
+      return { 
+        sql: `ALTER TABLE "${tableName}"${
+          changes.length ? ` ${changes.join(',\n')}` : ' '
+        }${rename};`, 
+        warning: (
+         'Renaming columns is unsafe. In production,\n' + 
+         'first transfer data to a new column (expand)\n' + 
+         'and remove the old column later (contract).'
+        ),
+        invalid,
+      }
+    } else {
+      return { 
+        sql: `ALTER TABLE "${tableName}"${
+          changes.length ? ` ${changes.join(',\n')}` : ' '
+        };`,
+        invalid,
+      }
+    }
+  }
+
+  buildRevertColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement[] {
+    return [{ sql: 'UNMODIFY COLUMN' }]
   }
 
   buildColumnType(column: ColumnDefinition): string {
@@ -62,38 +155,47 @@ export class PostgresDialect extends BaseDialect {
   buildColumn(column: ColumnDefinition, constraints: string[]): string {
     let colDef = `  "${column.name}" `
 
-    if (column.isPrimaryKey && column.isGenerated) {
-      colDef += 'serial PRIMARY KEY NOT NULL'
+    if (column.isGenerated) {
+      colDef += 'serial NOT NULL'
     } else {
       const sqlType = this.buildColumnType(column)
       colDef += sqlType
 
       if (column.defaultValue) {
-        if (column.defaultValue === 'now()') {
-          colDef += ' DEFAULT now()'
-        } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
-          colDef += ' DEFAULT CURRENT_TIMESTAMP'
-        } else {
-          colDef += ` DEFAULT ${column.defaultValue}`
-        }
+        colDef += ` ${this.#buildDefaultValue(column.defaultValue)}`
       }
 
       if (!column.nullable) {
         colDef += ' NOT NULL'
       }
-
-      if (column.isPrimaryKey && !column.isGenerated) {
-        colDef += ' PRIMARY KEY'
-      }
     }
 
+    if (column.isPrimaryKey) {
+      constraints.push(
+        `  CONSTRAINT "${this.#getConstraintName(column, 'primary')}" PRIMARY KEY ("${column.name}")`,
+      )      
+    }
     if (column.isUnique && !column.isPrimaryKey) {
       constraints.push(
-        `  CONSTRAINT "${`${column.tableName}_${snakeCase(column.name)}_unique`}" UNIQUE("${column.name}")`,
+        `  CONSTRAINT "${this.#getConstraintName(column, 'unique')}" UNIQUE ("${column.name}")`,
       )
     }
 
     return colDef
+  }
+
+  #buildDefaultValue (defaultValue: string) {
+    if (defaultValue === 'now()') {
+      return 'DEFAULT now()'
+    } else if (defaultValue === 'CURRENT_TIMESTAMP') {
+      return 'DEFAULT CURRENT_TIMESTAMP'
+    } else {
+      return `DEFAULT ${defaultValue}`
+    }
+  }
+
+  #getConstraintName (column: ColumnDefinition, id: string) {
+    return `${column.tableName}_${snakeCase(column.name)}_${snakeCase(id)}`
   }
 
   buildTable(table: TableDefinition): string {

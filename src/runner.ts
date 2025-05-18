@@ -1,7 +1,8 @@
 import minimist, { ParsedArgs } from 'minimist'
-import { log, confirm, isCancel } from '@clack/prompts'
+import { log, confirm, spinner, isCancel } from '@clack/prompts'
+
 import pc from 'picocolors'
-import { kebabCase } from 'scule'
+import { kebabCase, upperFirst } from 'scule'
 import { Kysely, KyselyConfig, CompiledQuery } from 'kysely'
 import Postgrator from 'postgrator'
 import { Pool as PostgresDriver, QueryResult } from 'pg'
@@ -21,7 +22,13 @@ import {
   createSQLSchemaResetFromSource,
   createSQLSchemaRevision,
 } from './index'
-import type { DatabaseDriver } from './types'
+import type { DatabaseDriver, SchemaRevisionStatement } from './types'
+
+type Spinner = {
+  start: (msg?: string) => void;
+  stop: (msg?: string, code?: number) => void;
+  message: (msg?: string) => void;
+}
 
 const start = perf.now()
 
@@ -35,7 +42,7 @@ export function createDatabase<Database>({
   driver,
   config,
   name,
-}: CreateDatabaseOptions) {
+}: CreateDatabaseOptions): Kysely<Database> {
   const argv = minimist(process.argv.slice(1))
 
   const database = new Kysely<Database>(config)
@@ -67,6 +74,7 @@ async function createSchema<Database>(
   argv: ParsedArgs,
   database: Kysely<Database>,
   reset?: boolean,
+  activeSpinner?: Spinner
 ) {
   const { source, sourceDir, sourceFileName, sourceBaseFileName } = readSource(
     argv._[0],
@@ -94,9 +102,14 @@ async function createSchema<Database>(
   const generatedSchemaFileName = `${sourceBaseFileName}.sql`
   const generatedSchemaFilePath = join(sourceDir, generatedSchemaFileName)
   writeFileSync(generatedSchemaFilePath, generatedSchema.join('\n\n'))
-  log.success(timed(`Created ${pc.cyan(generatedSchemaFileName)}`))
 
-  let shouldApply = argv.apply
+  if (activeSpinner) {
+    activeSpinner.message(timed(`Created ${pc.cyan(generatedSchemaFileName)}`))
+  } else {
+    log.success(timed(`Created ${pc.cyan(generatedSchemaFileName)}`))
+  }
+
+  let shouldApply = reset ?? argv.apply
   if (!shouldApply) {
     const apply = await confirm({
       message: reset ? 'Reset schema?' : 'Apply new schema?',
@@ -108,6 +121,10 @@ async function createSchema<Database>(
 
   if (shouldApply) {
     {
+      if (!activeSpinner) {
+        activeSpinner = spinner()
+        activeSpinner.start('Updating database')
+      }
       const start = perf.now()
       await database.transaction().execute(async (trx) => {
         for (const tableSchema of generatedSchema) {
@@ -115,7 +132,8 @@ async function createSchema<Database>(
           await trx.executeQuery(query)
         }
       })
-      log.success(timed(`Database updated`, start))
+      
+      activeSpinner.stop(timed(`Database updated`, start))
     }
 
     {
@@ -140,17 +158,45 @@ async function resetSchema<Database>(
 ) {
   const { source, sourceFileName } = readSource(argv._[0])
 
-  await database.transaction().execute(async (trx) => {
-    for (const tableSchemaReset of createSQLSchemaResetFromSource({
-      source,
-      fileName: sourceFileName,
-    })) {
-      const query = CompiledQuery.raw(tableSchemaReset)
-      await trx.executeQuery(query)
+  let shouldApply = argv.apply
+  if (!shouldApply) {
+    log.warn('This will drop all your database tables.')
+    const apply = await confirm({
+      message: 'Reset database schema?',
+    })
+    if (apply && !isCancel(apply)) {
+      shouldApply = true
     }
-  })
+  }
 
-  await createSchema(argv, database, true)
+  if (shouldApply) {
+    const s = spinner()
+    s.start('Updating database')
+    try {
+      await database.transaction().execute(async (trx) => {
+        for (const tableSchemaReset of createSQLSchemaResetFromSource({
+          source,
+          fileName: sourceFileName,
+        })) {
+          const query = CompiledQuery.raw(tableSchemaReset)
+          await trx.executeQuery(query)
+        }
+      })
+    } catch(err: unknown) {
+      if (err instanceof Error && err.message) {
+        s.stop(pc.bold(pc.redBright('Cancelled.')))
+        log.message()
+        log.error(pc.redBright(`${upperFirst(err.message)}.`))
+      } else {
+        s.stop(pc.bold(pc.redBright('Cancelled.')))
+        log.message()
+        log.error(pc.redBright(`An unknown error ocurred: ${err!.toString()}.`))
+      }
+      process.exit(1)
+    }
+
+    await createSchema(argv, database, true, s)
+  }
 }
 
 async function createSchemaRevision(
@@ -190,10 +236,42 @@ async function createSchemaRevision(
   }
 
   for (const rev of revision.up) {
-    log.info(rev)
+    if (rev.invalid?.length > 1) {
+      for (const { key, message } of rev.invalid) {
+        log.error(pc.redBright(`Couldn\'t create revision for column ${pc.cyan(key)}.\n${
+          message.split('\n').map(pc.yellowBright).join('\n')
+        }`))
+      }
+      process.exit(1)
+    }
+    if (rev.warning) {
+      log.info(rev.sql.split('\n').map(pc.whiteBright).join('\n'))
+      log.warn(rev.warning)
+    } else {
+      log.info(rev.sql.split('\n').map(pc.whiteBright).join('\n'))
+    }
   }
 
-  writeRevision(sourceDir, argv.revision, revision.up, revision.down)
+  writeRevision(sourceDir, argv.revision, revision.up, 'do')
+
+  for (const rev of revision.down) {
+    if (rev.invalid?.length > 1) {
+      for (const { key, message } of rev.invalid) {
+        log.error(pc.redBright(`Couldn\'t create revision for column ${pc.cyan(key)}.\n${
+          message.split('\n').map(pc.yellowBright).join('\n')
+        }`))
+      }
+      process.exit(1)
+    }
+    if (rev.warning) {
+      log.info(rev.sql.split('\n').map(pc.redBright).join('\n'))
+      log.warn(rev.warning)
+    } else {
+      log.info(rev.sql.split('\n').map(pc.redBright).join('\n'))
+    }
+  }
+
+  writeRevision(sourceDir, argv.revision, revision.down, 'undo')
 
   let shouldApply = argv.apply
   if (!shouldApply) {
@@ -249,12 +327,11 @@ function readSource(sourceFilePath: string): Record<string, string> {
 function writeRevision(
   sourceDir: string,
   name: string | boolean,
-  up: string[],
-  down: string[],
+  revision: SchemaRevisionStatement[],
+  type: 'do' | 'undo'
 ) {
   const revisionsDir = join(sourceDir, 'revisions')
   if (!existsSync(revisionsDir)) {
-    const start = perf.now()
     mkdirSync(revisionsDir, { recursive: true })
     log.warn(
       `Created ${pc.cyan('revisions')} directory, add it to source control.`,
@@ -274,22 +351,13 @@ function writeRevision(
   const revisionName = name === true
     ? new Date().getTime()
     : kebabCase((name as string).replace(/\s+/g, '-'))
-  const doRevisionFileName = `${nextRevision}.do.${revisionName}.sql`
-  const undoRevisionFileName = `${nextRevision}.undo.${revisionName}.sql`
+  const doRevisionFileName = `${nextRevision}.${type}.${revisionName}.sql`
 
   {
     const start = perf.now()
-    writeFileSync(join(revisionsDir, doRevisionFileName), up.join('\n\n'))
+    writeFileSync(join(revisionsDir, doRevisionFileName), revision.map(_ => _.sql).join('\n\n'))
     log.success(
       timed(`Created ${pc.cyan(`revisions/${doRevisionFileName}`)}`, start),
-    )
-  }
-
-  {
-    const start = perf.now()
-    writeFileSync(join(revisionsDir, undoRevisionFileName), down.join('\n\n'))
-    log.success(
-      timed(`Created ${pc.cyan(`revisions/${undoRevisionFileName}`)}`, start),
     )
   }
 }
