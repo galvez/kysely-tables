@@ -73,14 +73,14 @@ export type SchemaRevisionStatement = {
   warning?: string
 }
 
-export type Reference<_Table extends string, _Column, T> = T
-export type Unique<T extends string> = T
-export type Default<T, _V extends string> = T
+export type Reference<_Table, _Column extends string, T> = T
+export type Unique<T extends string | null> = T
+export type Default<T, _V> = T
 export type Primary<T> = T
-export type Sized<T extends string, _Size extends number> = T
-export type Text<T extends string> = T
-export type Keys<T extends string[]> = T
+export type Sized<T extends string | null, _Size extends number> = T
+export type Text<T extends string | null> = T
 
 // TODO index definitions
+// export type Keys<T extends string[]> = T
 // export type Index<_Table, Columns> = Columns
 // export type UniqueIndex<_Table, Columns> = Columns
