@@ -13,15 +13,18 @@ export class SqliteDialect extends BaseDialect {
     return 'PRAGMA foreign_keys = ON;'
   }
 
-  buildSchemaReset(tables?: TableDefinition[]): string[] {
-    const output = []
+  buildSchemaReset(tables?: TableDefinition[]): SchemaRevisionStatement[] {
+    const output: SchemaRevisionStatement[] = []
     const iterable = tables ?? this.tables
     if (iterable && iterable.length) {
-      output.push('PRAGMA foreign_keys = OFF;')
+      output.push({ sql: 'PRAGMA foreign_keys = OFF;' })
       for (const table of iterable) {
-        output.push(this.buildTableDrop(table.name, true).sql)
+        const rev = this.buildTableDrop(table.name, true)
+        if (rev.sql) {
+          output.push(rev)
+        }
       }
-      output.push('PRAGMA foreign_keys = OFF;')
+      output.push({ sql: 'PRAGMA foreign_keys = OFF;' })
     }
     return output
   }

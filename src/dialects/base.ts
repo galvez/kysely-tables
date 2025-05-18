@@ -22,16 +22,12 @@ export abstract class BaseDialect implements DialectAdapter {
   }
 
   abstract buildPreamble(): string
-  abstract buildSchemaReset(tables?: TableDefinition[]): string[]
+  abstract buildSchemaReset(tables?: TableDefinition[]): SchemaRevisionStatement[]
   abstract buildTableDrop(
     name: string,
     ifExists?: boolean,
   ): SchemaRevisionStatement
   abstract buildModifyColumn(
-    tableName: string,
-    column: ColumnDefinition,
-  ): SchemaRevisionStatement
-  abstract buildRevertColumn(
     tableName: string,
     column: ColumnDefinition,
   ): SchemaRevisionStatement

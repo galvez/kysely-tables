@@ -12,12 +12,15 @@ export class PostgresDialect extends BaseDialect {
     return ''
   }
 
-  buildSchemaReset(tables?: TableDefinition[]): string[] {
-    const output = []
+  buildSchemaReset(tables?: TableDefinition[]): SchemaRevisionStatement[] {
+    const output: SchemaRevisionStatement[] = []
     const iterable = tables ?? this.tables
     if (iterable && iterable.length) {
       for (const table of iterable) {
-        output.push(this.buildTableDrop(table.name, true).sql)
+        const rev = this.buildTableDrop(table.name, true)
+        if (rev.sql) {
+          output.push(rev)
+        }
       }
     }
     return output

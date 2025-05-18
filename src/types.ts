@@ -12,20 +12,13 @@ export type Dialect =
 
 export interface DialectAdapter {
   buildPreamble(): string
-  buildSchemaReset(tables?: TableDefinition[]): string[]
+  buildSchemaReset(tables?: TableDefinition[]): SchemaRevisionStatement[]
   buildSchemaRevisions(
     tables: TableDefinition[],
     tablesSnapshot: TableDefinition[],
-  ): {
-    up: SchemaRevisionStatement[]
-    down: SchemaRevisionStatement[]
-  }
+  ): SchemaRevisionStatement[]
   buildTableDrop(name: string, ifExists?: boolean): SchemaRevisionStatement
   buildModifyColumn(
-    tableName: string,
-    column: ColumnDefinition,
-  ): SchemaRevisionStatement
-  buildRevertColumn(
     tableName: string,
     column: ColumnDefinition,
   ): SchemaRevisionStatement
@@ -74,8 +67,9 @@ export interface IndexDefinition {
 }
 
 export type SchemaRevisionStatement = {
-  sql: string
-  invalid: { key: string; message: string }[]
+  sql?: string
+  invalid?: { key: string; message: string }[]
+  constraints?: string[]
   warning?: string
 }
 
