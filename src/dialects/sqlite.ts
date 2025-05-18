@@ -30,34 +30,35 @@ export class SqliteDialect extends BaseDialect {
     return { sql: `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}";` }
   }
 
-  buildModifyColumn(tableName: string, columnDiff: any): SchemaRevisionStatement {
-      let rename
-      let invalid = []
+  buildModifyColumn(
+    tableName: string,
+    columnDiff: any,
+  ): SchemaRevisionStatement {
+    let rename
+    let invalid = []
     const keys = Object.keys(columnDiff)
     for (const key of keys) {
       if (key === 'name' && columnDiff[key].__old) {
         rename = `RENAME COLUMN "${columnDiff[key].__old}" to "${columnDiff[key].__new}"`
       }
       if (key.endsWith('__deleted') || key.endsWith('__added')) {
-        const [_key] = key.split(/((__deleted)|(__added))/) 
-        invalid.push({ 
-          key: columnDiff.__original.name, 
-          message: (
-            'SQLite doesn\'t support altering column types.\n' +
-            'First transfer data to a new column (expand)\n' + 
-            'and remove the old column later (contract).'
-          )
+        const [_key] = key.split(/((__deleted)|(__added))/)
+        invalid.push({
+          key: columnDiff.__original.name,
+          message:
+            "SQLite doesn't support altering column types.\n" +
+            'First transfer data to a new column (expand)\n' +
+            'and remove the old column later (contract).',
         })
       }
     }
     if (rename) {
-      return { 
-        sql: `ALTER TABLE "${tableName}" ${rename};`, 
-        warning: (
-         'Renaming columns is unsafe. In production,\n' + 
-         'first transfer data to a new column (expand)\n' + 
-         'and remove the old column later (contract).'
-        ),
+      return {
+        sql: `ALTER TABLE "${tableName}" ${rename};`,
+        warning:
+          'Renaming columns is unsafe. In production,\n' +
+          'first transfer data to a new column (expand)\n' +
+          'and remove the old column later (contract).',
         invalid,
       }
     } else {
@@ -139,7 +140,7 @@ export class SqliteDialect extends BaseDialect {
     return colDef
   }
 
-  #getConstraintName (column: ColumnDefinition, id: string) {
+  #getConstraintName(column: ColumnDefinition, id: string) {
     return `${column.tableName}_${snakeCase(column.name)}_${snakeCase(id)}}`
   }
 

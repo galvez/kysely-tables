@@ -49,8 +49,9 @@ export type UpdateUser = Updateable<UsersTable>
 // export type CreateActivityLog = Insertable<ActivityLogTable>
 // export type UpdateActivityLog = Updateable<ActivityLogTable>
 
-const driver = new Pool({ 
-  connectionString: 'postgresql://galvez:0TuQbI6phPsr@ep-gentle-queen-680373-pooler.us-east-2.aws.neon.tech/saas?sslmode=require'
+const driver = new Pool({
+  connectionString:
+    'postgresql://galvez:0TuQbI6phPsr@ep-gentle-queen-680373-pooler.us-east-2.aws.neon.tech/saas?sslmode=require',
 })
 const dialect = new PostgresDialect({ pool: driver })
 

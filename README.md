@@ -17,7 +17,7 @@
 1. Check out this repository, `pnpm install` and `cd` to [`./example`](https://github.com/galvez/kysely-tables/tree/main/src/example).
 
 2. Inspect `database.ts` to see how tables are defined. Note that these types are fully Kysely-compatible. The schema types serve as hints for schema generation, but Kysely receives the underlying types it expects.
-   
+
    ```ts
    export interface UsersTable {
      id: Generated<Primary<number>>
@@ -28,7 +28,7 @@
      createdAt: Default<Date, 'now()'>
      updatedAt: Default<Date, 'now()'>
    }
-   
+
    export interface ActivityLogTable {
      id: number
      teamId: number
@@ -38,7 +38,7 @@
      ipAddress: string | null
    }
    ```
-   
+
    In order for a table to recognized as such, the interface name needs to end with `Table`. Note also how we can use Kysely's [`Generated`](https://kysely-org.github.io/kysely-apidoc/types/Generated.html) type together with this library's schema types. Same is true for [`ColumnType`](https://kysely-org.github.io/kysely-apidoc/types/ColumnType.html).
 
 3. Still in `database.ts`, you'll notice how the Kysely database instance is created through a wrapper, `createDatabase()`, and also that `dialect` is a top-level export.
@@ -54,31 +54,30 @@
      },
    })
    ```
-   
+
    This is to ensure the **runner** knows which dialect to use.
 
 4. Now it gets interesting: instead of packing a CLI, `kysely-tables` turns your schema file into one. This is what the `createDatabase()` wrapper is responsible for: parsing and understanding certain CLI flags when this file is executed directly. This is called the **runner**.
 
 5. Let's begin by creating the database and applying the initial table schema:
-  
+
    `% tsx database.tb --create`
-   
+
    <img width="512" alt="SCR-20250517-eyxp" src="https://github.com/user-attachments/assets/85a51124-88f6-4b0a-805c-5b1316d153f2" />
 
    Proceed and you'll see that `database.snapshot.ts` is also created.
-   
+
    <img width="512" alt="SCR-20250517-ezkw" src="https://github.com/user-attachments/assets/26402d6e-aa44-4f3f-a25d-410808cc3670" />
 
    This file is used for diffing purposes: when you change `database.ts`, the runner can know how the schema changed. Now let's create a **migration**, referred to as **schema revision** in this library.
 
-7. Edit `database.ts` and remove any column from any table. Then run:
+6. Edit `database.ts` and remove any column from any table. Then run:
 
    `% tsx database.tb --revision`
 
    <img width="512" alt="SCR-20250517-fnqr" src="https://github.com/user-attachments/assets/7a55b4ae-05b8-4598-a673-ee8fb93e75c5" />
 
 Even though `kysely-tables` is responsible for diffing and generating the SQL statements, the migrations run through [Postgrator](https://github.com/rickbergfalk/postgrator) under the hood. Postgrator is a mature and extremely well tested migration runner with support for PostgreSQL, SQLite, MySQL and MSSQL. It's used by [Platformatic](https://github.com/platformatic/platformatic).
-
 
 ## Syntax
 

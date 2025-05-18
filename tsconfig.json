@@ -11,11 +11,6 @@
       "kysely-tables/runner": ["./src/runner"]
     }
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "src/**/*.test.ts",
-    "src/example"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts", "src/example"]
 }

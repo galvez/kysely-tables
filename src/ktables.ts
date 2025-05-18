@@ -257,13 +257,13 @@ export class KyselyTables {
     this.#adapter = new this.dialect(this.tables)
     return {
       up: this.#adapter.buildSchemaRevisions(
-        structuredClone(this.tables), 
-        structuredClone(tablesSnapshot)
+        structuredClone(this.tables),
+        structuredClone(tablesSnapshot),
       ),
       down: this.#adapter.buildSchemaRevisions(
         structuredClone(tablesSnapshot),
-        structuredClone(this.tables)
-      )
+        structuredClone(this.tables),
+      ),
     }
   }
 }

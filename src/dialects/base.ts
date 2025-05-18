@@ -5,7 +5,7 @@ import {
   TableDefinition,
   IndexDefinition,
   ColumnDefinition,
-  SchemaRevisionStatement
+  SchemaRevisionStatement,
 } from '../types'
 
 // const diffStates = {
@@ -23,9 +23,18 @@ export abstract class BaseDialect implements DialectAdapter {
 
   abstract buildPreamble(): string
   abstract buildSchemaReset(tables?: TableDefinition[]): string[]
-  abstract buildTableDrop(name: string, ifExists?: boolean): SchemaRevisionStatement
-  abstract buildModifyColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement
-  abstract buildRevertColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement
+  abstract buildTableDrop(
+    name: string,
+    ifExists?: boolean,
+  ): SchemaRevisionStatement
+  abstract buildModifyColumn(
+    tableName: string,
+    column: ColumnDefinition,
+  ): SchemaRevisionStatement
+  abstract buildRevertColumn(
+    tableName: string,
+    column: ColumnDefinition,
+  ): SchemaRevisionStatement
   abstract buildColumn(column: ColumnDefinition, constraints?: string[]): string
   abstract buildTable(table: TableDefinition): string
   abstract buildIndexes(indexes: IndexDefinition[]): string[]
@@ -35,7 +44,7 @@ export abstract class BaseDialect implements DialectAdapter {
     tables: TableDefinition[],
     tablesSnapshot: TableDefinition[],
   ): SchemaRevisionStatement[] {
-    const revisions: SchemaRevisionStatement[] = [] 
+    const revisions: SchemaRevisionStatement[] = []
     const schemaDiff = diffSchemas(tablesSnapshot, tables)
     if (schemaDiff && !schemaDiff.length) {
       return revisions
@@ -46,7 +55,7 @@ export abstract class BaseDialect implements DialectAdapter {
         case '~':
           const tableName = rev[1].__original.name
           for (const columnRev of rev[1].columns) {
-            revInfo = columnRev[1]            
+            revInfo = columnRev[1]
             switch (columnRev[0]) {
               case '+':
                 revisions.push(this.buildAddColumn(revInfo))
@@ -74,11 +83,16 @@ export abstract class BaseDialect implements DialectAdapter {
   buildAddColumn(column: any): SchemaRevisionStatement {
     const constraints: string[] = []
     const columnSql = this.buildColumn(column, constraints)
-    return { sql: `ALTER TABLE "${column.tableName}" ADD COLUMN${columnSql};`, constraints }
+    return {
+      sql: `ALTER TABLE "${column.tableName}" ADD COLUMN${columnSql};`,
+      constraints,
+    }
   }
 
   buildDropColumn(column: any): SchemaRevisionStatement {
-    return { sql: `ALTER TABLE "${column.tableName}" DROP COLUMN "${column.name}";` }
+    return {
+      sql: `ALTER TABLE "${column.tableName}" DROP COLUMN "${column.name}";`,
+    }
   }
 
   protected validateTableExists(tableName: string): void {
@@ -114,7 +128,7 @@ export abstract class BaseDialect implements DialectAdapter {
 function diffSchemas(snapshot: TableDefinition[], original: TableDefinition[]) {
   // TODO create types for jsonDiff structure
   const diff = jsonDiff(snapshot, original) ?? []
-  
+
   let i = 0
   while (i < diff.length) {
     const [op, tableRev] = diff[i]
@@ -134,9 +148,9 @@ function diffSchemas(snapshot: TableDefinition[], original: TableDefinition[]) {
             c++
             continue
           }
-          // Reconciliation when jsonDiff thinks it's 
+          // Reconciliation when jsonDiff thinks it's
           // renaming and adding a new column:
-          // 
+          //
           // [
           //   "~",
           //   {
@@ -164,7 +178,10 @@ function diffSchemas(snapshot: TableDefinition[], original: TableDefinition[]) {
             })
             if (revIndex !== -1 && revIndex > c) {
               const { name, ...rest } = columnDiff
-              Object.assign(columnDiff, tableRev.__original.columns[originalIndex])
+              Object.assign(
+                columnDiff,
+                tableRev.__original.columns[originalIndex],
+              )
               for (const m of Object.keys(rest)) {
                 if (m.match(/((__deleted)|(__added))/)) {
                   const [key] = m.split(/((__deleted)|(__added))/)
@@ -248,7 +265,7 @@ function diffSchemas(snapshot: TableDefinition[], original: TableDefinition[]) {
           }
           originalIndex++
           c++
-        } 
+        }
       }
     }
   }

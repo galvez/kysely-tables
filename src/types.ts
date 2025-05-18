@@ -4,10 +4,7 @@ import type { Database as SqliteDatabase } from 'better-sqlite3'
 import { PostgresDialect } from './dialects/pgsql'
 import { SqliteDialect } from './dialects/sqlite'
 
-export type DatabaseDriver = 
-  | Pool
-  | PoolClient 
-  | SqliteDatabase
+export type DatabaseDriver = Pool | PoolClient | SqliteDatabase
 
 export type Dialect =
   | (new (tables?: TableDefinition[]) => PostgresDialect)
@@ -24,8 +21,14 @@ export interface DialectAdapter {
     down: SchemaRevisionStatement[]
   }
   buildTableDrop(name: string, ifExists?: boolean): SchemaRevisionStatement
-  buildModifyColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement
-  buildRevertColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement
+  buildModifyColumn(
+    tableName: string,
+    column: ColumnDefinition,
+  ): SchemaRevisionStatement
+  buildRevertColumn(
+    tableName: string,
+    column: ColumnDefinition,
+  ): SchemaRevisionStatement
   buildColumn(column: ColumnDefinition, constraints?: string[]): string
   buildTable(table: TableDefinition): string
   buildIndexes(indexes: IndexDefinition[]): string[]
@@ -71,8 +74,8 @@ export interface IndexDefinition {
 }
 
 export type SchemaRevisionStatement = {
-  sql: string,
-  invalid?: { key: string, message: string }[]
+  sql: string
+  invalid: { key: string; message: string }[]
   warning?: string
 }
 

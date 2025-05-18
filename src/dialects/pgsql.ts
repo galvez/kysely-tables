@@ -1,6 +1,11 @@
 import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
-import { TableDefinition, IndexDefinition, ColumnDefinition, SchemaRevisionStatement } from '../types'
+import {
+  TableDefinition,
+  IndexDefinition,
+  ColumnDefinition,
+  SchemaRevisionStatement,
+} from '../types'
 
 export class PostgresDialect extends BaseDialect {
   buildPreamble(): string {
@@ -19,10 +24,15 @@ export class PostgresDialect extends BaseDialect {
   }
 
   buildTableDrop(name: string, ifExists?: boolean): SchemaRevisionStatement {
-    return { sql: `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}" CASCADE;` }
+    return {
+      sql: `DROP TABLE${ifExists ? ' IF EXISTS ' : ' '}"${name}" CASCADE;`,
+    }
   }
 
-  buildModifyColumn(tableName: string, columnDiff: any): SchemaRevisionStatement {
+  buildModifyColumn(
+    tableName: string,
+    columnDiff: any,
+  ): SchemaRevisionStatement {
     let rename
     let cType
     const invalid: SchemaRevisionStatement['invalid'] = []
@@ -46,7 +56,7 @@ export class PostgresDialect extends BaseDialect {
         }
       }
       if (key.endsWith('__deleted')) {
-        const [_key] = key.split('__deleted') 
+        const [_key] = key.split('__deleted')
         if (_key === 'isText' || _key === 'size') {
           cType = 'SET TYPE varchar(255)'
         }
@@ -54,39 +64,49 @@ export class PostgresDialect extends BaseDialect {
           changes.push(`DROP DEFAULT`)
         }
         if (_key === 'isUnique') {
-          changes.push(`DROP CONSTRAINT "${
-            this.#getConstraintName(columnDiff.__original, 'unique')
-          }"`)
+          changes.push(
+            `DROP CONSTRAINT "${this.#getConstraintName(
+              columnDiff.__original,
+              'unique',
+            )}"`,
+          )
         }
         if (_key === 'isPrimaryKey') {
-          changes.push(`DROP CONSTRAINT "${
-            this.#getConstraintName(columnDiff.__original, 'primary')
-          }"`)
+          changes.push(
+            `DROP CONSTRAINT "${this.#getConstraintName(
+              columnDiff.__original,
+              'primary',
+            )}"`,
+          )
         }
       }
       if (key.endsWith('__added')) {
-        const [_key] = key.split('__added') 
+        const [_key] = key.split('__added')
         if (_key === 'isText') {
           changes.push('SET TYPE text')
         } else if (_key === 'size') {
           changes.push(`SET TYPE varchar(${columnDiff[key]})`)
         }
         if (_key === 'defaultValue') {
-          changes.push(`SET DEFAULT ${this.#buildDefaultValue(columnDiff[key])}`)
+          changes.push(
+            `SET DEFAULT ${this.#buildDefaultValue(columnDiff[key])}`,
+          )
         }
         if (_key === 'isPrimary') {
-          changes.push(`ADD CONSTRAINT "${
-            this.#getConstraintName(columnDiff.__original, 'PRIMARY')
-          } PRIMARY KEY ("${
-            columnDiff.__original.name
-          }")`)
+          changes.push(
+            `ADD CONSTRAINT "${this.#getConstraintName(
+              columnDiff.__original,
+              'PRIMARY',
+            )} PRIMARY KEY ("${columnDiff.__original.name}")`,
+          )
         }
         if (_key === 'isUnique') {
-          changes.push(`ADD CONSTRAINT "${
-            this.#getConstraintName(columnDiff.__original, 'unique')
-          }" UNIQUE ("${
-            columnDiff.__original.name
-          }")`)
+          changes.push(
+            `ADD CONSTRAINT "${this.#getConstraintName(
+              columnDiff.__original,
+              'unique',
+            )}" UNIQUE ("${columnDiff.__original.name}")`,
+          )
         }
       }
     }
@@ -97,19 +117,18 @@ export class PostgresDialect extends BaseDialect {
       changes[i] = `ALTER COLUMN "${columnDiff.__original.name}" ${changes[i]}`
     }
     if (rename) {
-      return { 
+      return {
         sql: `ALTER TABLE "${tableName}"${
           changes.length ? ` ${changes.join(',\n')}` : ' '
-        }${rename};`, 
-        warning: (
-         'Renaming columns is unsafe. In production,\n' + 
-         'first transfer data to a new column (expand)\n' + 
-         'and remove the old column later (contract).'
-        ),
+        }${rename};`,
+        warning:
+          'Renaming columns is unsafe. In production,\n' +
+          'first transfer data to a new column (expand)\n' +
+          'and remove the old column later (contract).',
         invalid,
       }
     } else {
-      return { 
+      return {
         sql: `ALTER TABLE "${tableName}"${
           changes.length ? ` ${changes.join(',\n')}` : ' '
         };`,
@@ -133,7 +152,7 @@ export class PostgresDialect extends BaseDialect {
     return this.buildColumnPrimitiveType(column.tsType ?? '')
   }
 
-  buildColumnPrimitiveType (tsType: string): string {
+  buildColumnPrimitiveType(tsType: string): string {
     switch (tsType) {
       case 'string':
         return 'varchar(255)'
@@ -169,7 +188,7 @@ export class PostgresDialect extends BaseDialect {
     if (column.isPrimaryKey) {
       constraints.push(
         `  CONSTRAINT "${this.#getConstraintName(column, 'primary')}" PRIMARY KEY ("${column.name}")`,
-      )      
+      )
     }
     if (column.isUnique && !column.isPrimaryKey) {
       constraints.push(
@@ -180,7 +199,7 @@ export class PostgresDialect extends BaseDialect {
     return colDef
   }
 
-  #buildDefaultValue (defaultValue: string) {
+  #buildDefaultValue(defaultValue: string) {
     if (defaultValue === 'now()') {
       return 'DEFAULT now()'
     } else if (defaultValue === 'CURRENT_TIMESTAMP') {
@@ -190,7 +209,7 @@ export class PostgresDialect extends BaseDialect {
     }
   }
 
-  #getConstraintName (column: ColumnDefinition, id: string) {
+  #getConstraintName(column: ColumnDefinition, id: string) {
     return `${column.tableName}_${snakeCase(column.name)}_${snakeCase(id)}`
   }
 
