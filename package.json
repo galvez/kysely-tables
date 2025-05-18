@@ -1,11 +1,12 @@
 {
   "type": "module",
   "name": "kysely-tables",
-  "description": "WIP",
-  "version": "0.0.1",
+  "description": "Use the same Kysely types for your SQL table schema, migrations and queries.",
+  "version": "0.1.0-beta.1",
   "main": "dist/index.js",
   "scripts": {
-    "format": "prettier -w --no-semi --single-quote --bracket-same-line .",
+    "build": "tsc",
+    "format": "prettier -w --no-semi --single-quote .",
     "lint": "oxlint . && pnpm format",
     "test": "tsx src/index.test.ts"
   },
@@ -22,11 +23,13 @@
   "dependencies": {
     "@clack/prompts": "^0.10.1",
     "@types/minimist": "^1.2.5",
-    "deep-object-diff": "^1.1.9",
+    "better-sqlite3": "^11.10.0",
+    "deep-object-diff": "^1.1.9",    
     "fast-safe-stringify": "^2.1.1",
     "json-diff": "^1.0.6",
     "kysely": "^0.28.2",
     "minimist": "^1.2.8",
+    "pg": "^8.15.6",
     "picocolors": "^1.1.1",
     "postgrator": "^8.0.0",
     "scule": "^1.3.0",
@@ -38,14 +41,24 @@
     "@types/json-diff": "^1.0.3",
     "@types/node": "^18.0.0",
     "@types/pg": "^8.15.1",
-    "better-sqlite3": "^11.10.0",
     "fastify": "^5.3.3",
     "oxlint": "^0.16.10",
-    "pg": "^8.15.6",
     "prettier": "^3.5.3",
     "tsx": "^4.19.4"
   },
+  "exports": {
+    "./*": "./dist/*"
+  },
+  "typesVersions": {
+    "*": {
+      "*": ["dist/*"]
+    }
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./runner": "./dist/runner.js"
+  },
   "files": [
-    "src/dummy.ts"
+    "dist/**"
   ]
 }
