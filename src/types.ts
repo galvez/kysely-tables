@@ -4,7 +4,10 @@ import type { Database as SqliteDatabase } from 'better-sqlite3'
 import { PostgresDialect } from './dialects/pgsql'
 import { SqliteDialect } from './dialects/sqlite'
 
-export type DatabaseDriver = PoolClient | SqliteDatabase
+export type DatabaseDriver = 
+  | Pool
+  | PoolClient 
+  | SqliteDatabase
 
 export type Dialect =
   | (new (tables?: TableDefinition[]) => PostgresDialect)

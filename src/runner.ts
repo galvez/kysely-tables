@@ -99,6 +99,7 @@ async function createSchema<Database>(
     fileName: sourceFileName,
   })
 
+
   const generatedSchemaFileName = `${sourceBaseFileName}.sql`
   const generatedSchemaFilePath = join(sourceDir, generatedSchemaFileName)
   writeFileSync(generatedSchemaFilePath, generatedSchema.join('\n\n'))
@@ -126,12 +127,18 @@ async function createSchema<Database>(
         activeSpinner.start('Updating database')
       }
       const start = perf.now()
-      await database.transaction().execute(async (trx) => {
-        for (const tableSchema of generatedSchema) {
-          const query = CompiledQuery.raw(tableSchema)
-          await trx.executeQuery(query)
-        }
-      })
+      try {
+        await database.transaction().execute(async (trx) => {
+          for (const tableSchema of generatedSchema) {
+            const query = CompiledQuery.raw(tableSchema)
+            await trx.executeQuery(query)
+          }
+        })
+      } catch (err) {
+        console.log(generatedSchema)
+        console.log(err)
+        process.exit(1)
+      }
       
       activeSpinner.stop(timed(`Database updated`, start))
     }
@@ -170,8 +177,10 @@ async function resetSchema<Database>(
   }
 
   if (shouldApply) {
+    console.log('!')
     const s = spinner()
     s.start('Updating database')
+    console.log('what the fuck')
     try {
       await database.transaction().execute(async (trx) => {
         for (const tableSchemaReset of createSQLSchemaResetFromSource({
@@ -183,6 +192,7 @@ async function resetSchema<Database>(
         }
       })
     } catch(err: unknown) {
+      console.log(err)
       if (err instanceof Error && err.message) {
         s.stop(pc.bold(pc.redBright('Cancelled.')))
         log.message()
@@ -230,13 +240,15 @@ async function createSchemaRevision(
     fileName: sourceFileName,
   })
 
+  console.log(revision)
+
   if (!revision.up.length) {
     log.warn(`No changes detected.`)
     process.exit()
   }
 
   for (const rev of revision.up) {
-    if (rev.invalid?.length > 1) {
+    if (rev.invalid?.length > 0) {
       for (const { key, message } of rev.invalid) {
         log.error(pc.redBright(`Couldn\'t create revision for column ${pc.cyan(key)}.\n${
           message.split('\n').map(pc.yellowBright).join('\n')
@@ -255,7 +267,7 @@ async function createSchemaRevision(
   writeRevision(sourceDir, argv.revision, revision.up, 'do')
 
   for (const rev of revision.down) {
-    if (rev.invalid?.length > 1) {
+    if (rev.invalid?.length > 0) {
       for (const { key, message } of rev.invalid) {
         log.error(pc.redBright(`Couldn\'t create revision for column ${pc.cyan(key)}.\n${
           message.split('\n').map(pc.yellowBright).join('\n')
@@ -267,7 +279,7 @@ async function createSchemaRevision(
       log.info(rev.sql.split('\n').map(pc.redBright).join('\n'))
       log.warn(rev.warning)
     } else {
-      log.info(rev.sql.split('\n').map(pc.redBright).join('\n'))
+      log.info(rev.sql.split('\n').map(pc.whiteBright).join('\n'))
     }
   }
 
@@ -382,15 +394,18 @@ async function getPostgratorClient(driver: DatabaseDriver): Promise<
   } else if (driver instanceof SqliteDriver) {
     return {
       driver: 'sqlite3',
-      execQuery(query: string) {
-        try {
-          return Promise.resolve({
-            rows: driver.prepare(query).all(),
-          })
-        } catch (err) {
-          console.log(err)
-          driver.prepare(query).run()
-          return Promise.resolve({ rows: [] })
+      async execQuery(query: string) {
+        const stmt = driver.prepare(query)
+        if (query.trim().toLowerCase().startsWith('select')) {
+          const rows = stmt.all()
+          return { rows }
+        } else {
+          const result = stmt.run()
+          return { 
+            rows: [],
+            changes: result.changes,
+            lastInsertRowid: result.lastInsertRowid 
+          }
         }
       },
     }

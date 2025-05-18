@@ -65,10 +65,6 @@ export class SqliteDialect extends BaseDialect {
     }
   }
 
-  buildRevertColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement[] {
-    return [{ sql: 'UNMODIFY COLUMN' }]
-  }
-
   buildColumnType(column: ColumnDefinition): string {
     let sqlType: string
 
@@ -111,8 +107,10 @@ export class SqliteDialect extends BaseDialect {
   buildColumn(column: ColumnDefinition, constraints: string[]): string {
     let colDef = `  "${column.name}" `
 
-    if (column.isGenerated) {
-      colDef += 'INTEGER AUTOINCREMENT NOT NULL'
+    if (column.isPrimaryKey && column.isGenerated) {
+      colDef += 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
+    } else if (column.isPrimaryKey) {
+      colDef += 'INTEGER PRIMARY KEY NOT NULL'
     } else {
       const sqlType = this.buildColumnType(column)
       colDef += sqlType
@@ -130,12 +128,6 @@ export class SqliteDialect extends BaseDialect {
       if (!column.nullable) {
         colDef += ' NOT NULL'
       }
-    }
-
-    if (column.isPrimaryKey) {
-      constraints.push(
-        `  CONSTRAINT "${this.#getConstraintName(column, 'primary')}" PRIMARY KEY ("${column.name}")`,
-      )
     }
 
     if (column.isUnique && !column.isPrimaryKey) {
@@ -158,7 +150,7 @@ export class SqliteDialect extends BaseDialect {
     const constraints: string[] = []
 
     for (const column of table.columns) {
-      columnDefinitions.push(this.buildColumn(column))
+      columnDefinitions.push(this.buildColumn(column, constraints))
     }
 
     sql += columnDefinitions.join(',\n')

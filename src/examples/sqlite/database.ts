@@ -21,7 +21,7 @@ import {
 export interface UsersTable {
   ida: Generated<Primary<number>>
   fname: Sized<string, 100> | null
-  email: Unique<Sized<string, 255>>
+  email: Sized<string, 255>
   passwordHash: Text<string>
   role: Default<string, "'member2'">
   createdAt: Default<Date, 'now()'>

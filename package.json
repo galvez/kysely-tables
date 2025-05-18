@@ -23,6 +23,7 @@
     "@clack/prompts": "^0.10.1",
     "@types/minimist": "^1.2.5",
     "deep-object-diff": "^1.1.9",
+    "fast-safe-stringify": "^2.1.1",
     "json-diff": "^1.0.6",
     "kysely": "^0.28.2",
     "minimist": "^1.2.8",
