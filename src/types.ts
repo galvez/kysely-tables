@@ -72,15 +72,18 @@ export interface IndexDefinition {
 
 export type SchemaRevisionStatement = {
   sql: string,
-  unsafe?: boolean
+  invalid?: { key: string, message: string }[]
+  warning?: string
 }
 
-export type Reference<_Table, _Column, T> = T
-export type Unique<T> = T
-export type Default<T, _V> = T
+export type Reference<_Table extends string, _Column, T> = T
+export type Unique<T extends string> = T
+export type Default<T, _V extends string> = T
 export type Primary<T> = T
-export type Sized<T, _Size extends number> = T
-export type Text<T> = T
+export type Sized<T extends string, _Size extends number> = T
+export type Text<T extends string> = T
 export type Keys<T extends string[]> = T
-export type Index<_Table, Columns> = Columns
-export type UniqueIndex<_Table, Columns> = Columns
+
+// TODO index definitions
+// export type Index<_Table, Columns> = Columns
+// export type UniqueIndex<_Table, Columns> = Columns

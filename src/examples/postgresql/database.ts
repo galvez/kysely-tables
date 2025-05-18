@@ -7,7 +7,6 @@ import {
   Primary,
   Text,
   Sized,
-  Reference,
 } from 'kysely-tables'
 
 import {
@@ -19,11 +18,11 @@ import {
 } from 'kysely'
 
 export interface UsersTable {
-  ida: Generated<Primary<number>>
-  fname: Sized<string, 100> | null
-  email: string
+  id: Generated<Primary<number>>
+  name: Sized<string, 100> | null
+  email: number | null
   passwordHash: Text<string>
-  role: Default<string, "'member2'">
+  role: Default<string, "'member'">
   createdAt: Default<Date, 'now()'>
   updatedAt: Default<Date, 'now()'>
 }

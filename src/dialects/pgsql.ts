@@ -24,31 +24,31 @@ export class PostgresDialect extends BaseDialect {
 
   buildModifyColumn(tableName: string, columnDiff: any): SchemaRevisionStatement {
     let rename
-    const invalid = []
-    const changes = []
+    let cType
+    const invalid: SchemaRevisionStatement['invalid'] = []
+    const changes: string[] = []
     const keys = Object.keys(columnDiff)
     for (const key of keys) {
-      if (key === 'name' && columnDiff[key].__old) {
+      if (key === 'name' && hasProp(columnDiff[key], '__old')) {
         rename = `RENAME COLUMN "${columnDiff[key].__old}" to "${columnDiff[key].__new}"`
       }
       if (!key.match(/((__deleted)|(__added))/)) {
-        if (columnDiff[key].__old) {
+        if (hasProp(columnDiff[key], '__old')) {
           if (key === 'nullable') {
             if (columnDiff[key].__new) {
               changes.push('SET NOT NULL')
             } else {
               changes.push('DROP NOT NULL')
             }
+          } else if (key === 'tsType') {
+            cType = `SET TYPE ${this.buildColumnPrimitiveType(columnDiff[key].__new)}`
           }
         }
       }
       if (key.endsWith('__deleted')) {
         const [_key] = key.split('__deleted') 
-        if (_key === 'nullable') {
-          changes.push('SET TYPE varchar(255)')
-        }
-        if (_key === 'size') {
-          changes.push('SET TYPE varchar(255)')
+        if (_key === 'isText' || _key === 'size') {
+          cType = 'SET TYPE varchar(255)'
         }
         if (_key === 'defaultValue') {
           changes.push(`DROP DEFAULT`)
@@ -66,7 +66,9 @@ export class PostgresDialect extends BaseDialect {
       }
       if (key.endsWith('__added')) {
         const [_key] = key.split('__added') 
-        if (_key === 'size') {
+        if (_key === 'isText') {
+          changes.push('SET TYPE text')
+        } else if (_key === 'size') {
           changes.push(`SET TYPE varchar(${columnDiff[key]})`)
         }
         if (_key === 'defaultValue') {
@@ -87,6 +89,12 @@ export class PostgresDialect extends BaseDialect {
           }")`)
         }
       }
+    }
+    if (cType) {
+      changes.unshift(cType)
+    }
+    for (let i = 0; i < changes.length; i++) {
+      changes[i] = `ALTER COLUMN "${columnDiff.__original.name}" ${changes[i]}`
     }
     if (rename) {
       return { 
@@ -110,13 +118,7 @@ export class PostgresDialect extends BaseDialect {
     }
   }
 
-  buildRevertColumn(tableName: string, column: ColumnDefinition): SchemaRevisionStatement[] {
-    return [{ sql: 'UNMODIFY COLUMN' }]
-  }
-
   buildColumnType(column: ColumnDefinition): string {
-    let sqlType: string
-
     if (column.isText) {
       return 'text'
     }
@@ -128,28 +130,22 @@ export class PostgresDialect extends BaseDialect {
       return 'text'
     }
 
-    switch (column.tsType) {
-      case 'string':
-        sqlType = 'varchar(255)'
-        break
-      case 'number':
-        sqlType = 'integer'
-        break
-      case 'Date':
-        sqlType = 'timestamp'
-        break
-      case 'boolean':
-        sqlType = 'boolean'
-        break
-      default:
-        // if (column.tsType.startsWith('JSONColumnType<')) {
-        //   sqlType = 'jsonb'
-        // } else {
-        sqlType = 'text'
-      // }
-    }
+    return this.buildColumnPrimitiveType(column.tsType ?? '')
+  }
 
-    return sqlType
+  buildColumnPrimitiveType (tsType: string): string {
+    switch (tsType) {
+      case 'string':
+        return 'varchar(255)'
+      case 'number':
+        return 'integer'
+      case 'Date':
+        return 'timestamp'
+      case 'boolean':
+        return 'boolean'
+      default:
+        return 'text'
+    }
   }
 
   buildColumn(column: ColumnDefinition, constraints: string[]): string {
@@ -294,4 +290,11 @@ export class PostgresDialect extends BaseDialect {
 
     return constraints
   }
+}
+
+function hasProp(obj: unknown, prop: string): boolean {
+  if (typeof obj === 'object' && obj !== null) {
+    return prop in obj
+  }
+  return false
 }
