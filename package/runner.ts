@@ -134,7 +134,7 @@ async function createSchema<Database>(
           }
         })
       } catch (err) {
-        console.log(generatedSchema)
+        // console.log(generatedSchema)
         console.log(err)
         process.exit(1)
       }
@@ -236,8 +236,6 @@ async function createSchemaRevision(
     snapshotFileName,
     fileName: sourceFileName,
   })
-
-  console.log(revision)
 
   if (!revision.up.length) {
     log.warn(`No changes detected.`)

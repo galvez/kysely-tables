@@ -74,7 +74,7 @@ export abstract class BaseDialect implements DialectAdapter {
     const constraints: string[] = []
     const columnSql = this.buildColumn(column, constraints)
     return {
-      sql: `ALTER TABLE "${column.tableName}" ADD COLUMN${columnSql};`,
+      sql: `ALTER TABLE "${column.tableName}" ADD COLUMN ${columnSql.trimStart()};`,
       constraints,
     }
   }

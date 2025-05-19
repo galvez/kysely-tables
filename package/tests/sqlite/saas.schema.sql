@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS "users" (
   "email" text NOT NULL,
   "passwordHash" text NOT NULL,
   "role" text DEFAULT 'member' NOT NULL,
-  "createdAt" text DEFAULT (datetime('now') NOT NULL,
-  "updatedAt" text DEFAULT (datetime('now') NOT NULL,
+  "createdAt" text DEFAULT (datetime('now')) NOT NULL,
+  "updatedAt" text DEFAULT (datetime('now')) NOT NULL,
   "deletedAt" text,
   CONSTRAINT "users_email_unique" UNIQUE("email")
 );
@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS "users" (
 CREATE TABLE IF NOT EXISTS "teams" (
   "id" integer NOT NULL,
   "name" text NOT NULL,
-  "createdAt" text DEFAULT (datetime('now') NOT NULL,
-  "updatedAt" text DEFAULT (datetime('now') NOT NULL,
+  "createdAt" text DEFAULT (datetime('now')) NOT NULL,
+  "updatedAt" text DEFAULT (datetime('now')) NOT NULL,
   "stripeCustomerId" text,
   "stripeSubscriptionId" text,
   "stripeProductId" text,
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS "invitations" (
   "email" text NOT NULL,
   "role" text NOT NULL,
   "invitedBy" integer NOT NULL,
-  "invitedAt" text DEFAULT (datetime('now') NOT NULL,
+  "invitedAt" text DEFAULT (datetime('now')) NOT NULL,
   "status" text NOT NULL,
   CONSTRAINT "team_id_id_teams_table_fk" FOREIGN KEY("teamId") REFERENCES "teams_table"("id"),
   CONSTRAINT "invited_by_id_users_table_fk" FOREIGN KEY("invitedBy") REFERENCES "users_table"("id")

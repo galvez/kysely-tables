@@ -1,5 +1,5 @@
 .env
-database.sqlite
-database.snapshot.ts
-database.sql
+db.sqlite
+db.snapshot.ts
+db.sql
 revisions

@@ -136,7 +136,7 @@ export class SqliteDialect extends BaseDialect {
 
   #buildDefaultValue(defaultValue: string) {
     if (defaultValue === 'now()') {
-      return "DEFAULT (datetime('now')"
+      return "DEFAULT (datetime('now'))"
     } else if (defaultValue === 'CURRENT_TIMESTAMP') {
       return 'DEFAULT CURRENT_TIMESTAMP'
     } else {
