@@ -203,7 +203,7 @@ Generates `UNIQUE` clauses and associated indexes.
 
 ## Internals
 
-I wrote this because I was unhappy with the APIs and workflows available in [other](https://orm.drizzle.team/docs/migrations) [libraries](https://www.prisma.io/docs/orm/prisma-migrate/getting-started). Even Kysely itself has its own API for migrations, which differs from the types used to define tables. I wanted my database management layer to be **extremely light**, but also architected in an transparent way, that would make me feel like I know what's going behind the scenes.
+I wrote this because I was unhappy with the APIs and workflows available in [other](https://orm.drizzle.team/docs/migrations) [libraries](https://www.prisma.io/docs/orm/prisma-migrate/getting-started). Even Kysely itself [has its own API for migrations](https://kysely.dev/docs/migrations), which differs from the types used to define tables. I wanted my database management layer to be **extremely light**, but also architected in an transparent way, that would make me feel like I know what's going behind the scenes.
 
 The main class is `KyselyTables`, which provides the `buildSchema()`, `buildSchemaReset()` and `buildSchemaRevision()` methods. The main code that analyzes the table interfaces and their column fields is `#registerTableColumns()`. They all use [TypeScript's compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API) to properly parse the source file, no regexes involved. The whole API is heavily inspired by Kysely, and of course, compatible with Kysely.
 
