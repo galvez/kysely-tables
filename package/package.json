@@ -2,7 +2,7 @@
   "type": "module",
   "name": "kysely-tables",
   "description": "Use the same Kysely types for your SQL table schema, migrations and queries.",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -20,6 +20,10 @@
   ],
   "author": "Jonas Galvez <jonasgalvez@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/galvez/kysely-tables.git"
+  },
   "dependencies": {
     "@clack/prompts": "^0.10.1",
     "@types/minimist": "^1.2.5",
