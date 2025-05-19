@@ -1,12 +1,15 @@
-import { Generated } from 'kysely'
-import { Primary } from 'kysely-tables'
+import SQLite3Database from 'better-sqlite3'
+import { SqliteDialect, Generated } from 'kysely'
+import { createDatabase, Primary } from 'kysely-tables'
 
-export interface TableWithGeneratedTable {
+export interface WithGeneratedFieldsTable {
   field_generated_primary: Generated<Primary<number>>
   field_generated: Generated<number>
 }
 
-import SQLite3Database from 'better-sqlite3'
+export interface Database {
+  withGeneratedFields: WithGeneratedFieldsTable
+}
 
 const driver = new SQLite3Database('database.sqlite')
 const dialect = new SqliteDialect({ database: driver })

@@ -1,27 +1,33 @@
+// import './tree.test.ts'
+
 import test from 'node:test'
-import { ok } from 'node:assert'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import {
-  Dialect,
-  createSQLSchemaFromSource,
-  PostgresDialect,
-  SqliteDialect,
-} from '../index'
+import { createSQLSchemaFromSource } from '../index'
 
-const dev = process.argv.includes('--dev')
+const dev = process.argv.includes('--dev') || process.env.DEV
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // Kysely utility types
-// test('ColumnType<S, I, U> type utility', makeTest('coltype'))
-// test('Generated<T> type utility', makeTest('generated'))
+// test('ColumnType<S, I, U> type utility', makeTest('coltype', 'postgres'))
+// test('ColumnType<S, I, U> type utility', makeTest('coltype', 'sqlite'))
 
-// Added utility types
-// test('Default<T, V> type utility', makeTest('default'))
-// test('Primary<T> type utility', makeTest('primary'))
-// test('String type utilities', makeTest('strings'))
-// test('Number type utilities', makeTest('numbers'))
+// test('Generated<T> type utility', makeTest('generated', 'postgres'))
+// test('Generated<T> type utility', makeTest('generated', 'sqlite'))
+
+// // Added utility types
+// test('Default<T, V> type utility', makeTest('default', 'postgres'))
+// test('Default<T, V> type utility', makeTest('default', 'sqlite'))
+
+// test('Primary<T> type utility', makeTest('primary', 'postgres'))
+// test('Primary<T> type utility', makeTest('primary', 'sqlite'))
+
+// test('String type utilities', makeTest('strings', 'postgres'))
+// test('String type utilities', makeTest('strings', 'sqlite'))
+
+test('Number type utilities', makeTest('numbers', 'postgres'))
+test('Number type utilities', makeTest('numbers', 'sqlite'))
 
 // Full examples
 test('Full SaaS schema example', makeTest('saas', 'postgres'))

@@ -8,7 +8,7 @@
     "build": "tsc",
     "format": "prettier -w --no-semi --single-quote .",
     "lint": "oxlint . && pnpm format",
-    "test": "tsx src/tests/index.test.ts -- --dev"
+    "test": "tsx --test src/tests/*.test.ts"
   },
   "keywords": [
     "typescript",
@@ -24,7 +24,7 @@
     "@clack/prompts": "^0.10.1",
     "@types/minimist": "^1.2.5",
     "better-sqlite3": "^11.10.0",
-    "deep-object-diff": "^1.1.9",    
+    "deep-object-diff": "^1.1.9",
     "fast-safe-stringify": "^2.1.1",
     "json-diff": "^1.0.6",
     "kysely": "^0.28.2",
@@ -51,7 +51,9 @@
   },
   "typesVersions": {
     "*": {
-      "*": ["dist/*"]
+      "*": [
+        "dist/*"
+      ]
     }
   },
   "exports": {

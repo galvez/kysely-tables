@@ -1,5 +1,6 @@
-import { ColumnType } from 'kysely'
-import { Default } from 'kysely-tables'
+import SQLite3Database from 'better-sqlite3'
+import { SqliteDialect, ColumnType } from 'kysely'
+import { createDatabase, Default } from 'kysely-tables'
 
 export interface WithDefaultsTable {
   filed_string: Default<string, "'member'">
@@ -15,7 +16,9 @@ export interface WithDefaultsTable {
   field_default_coltype: Default<ColumnType<Date, never, Date>, 'now()'>
 }
 
-import SQLite3Database from 'better-sqlite3'
+export interface Database {
+  withDefaults: WithDefaultsTable
+}
 
 const driver = new SQLite3Database('database.sqlite')
 const dialect = new SqliteDialect({ database: driver })

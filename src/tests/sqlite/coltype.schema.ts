@@ -7,6 +7,10 @@ export interface FooTable {
   field_nullable: ColumnType<Date | null, never, Date>
 }
 
+export interface Database {
+  foo: FooTable
+}
+
 const driver = new SQLite3Database('database.sqlite')
 const dialect = new SqliteDialect({ database: driver })
 

@@ -1,10 +1,7 @@
-import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
 import {
-  Dialect,
   TableDefinition,
   ColumnDefinition,
-  IndexDefinition,
   SchemaRevisionStatement,
 } from '../types'
 
@@ -73,35 +70,35 @@ export class SqliteDialect extends BaseDialect {
     let sqlType: string
 
     if (column.isText) {
-      return 'TEXT'
+      return 'text'
     }
 
     if (column.size) {
       if (column.tsType === 'string') {
-        return `VARCHAR(${column.size})`
+        return 'text'
       }
-      return 'TEXT'
+      return 'text'
     }
 
     switch (column.tsType) {
       case 'string':
-        sqlType = 'TEXT'
+        sqlType = 'text'
         break
       case 'number':
-        sqlType = 'INTEGER'
+        sqlType = 'integer'
         break
       case 'Date':
-        sqlType = 'TEXT'
+        sqlType = 'text'
         break
       case 'boolean':
-        sqlType = 'INTEGER'
+        sqlType = 'integer'
         break
       default:
         // if (column.tsType.startsWith('JSONColumnType<')) {
         //   // Keeping this here in case SQLite ever gets JSON type
-        //   sqlType = 'TEXT'
+        //   sqlType = 'text'
         // } else {
-        sqlType = 'TEXT'
+        sqlType = 'text'
       // }
     }
 
@@ -112,21 +109,15 @@ export class SqliteDialect extends BaseDialect {
     let colDef = `  "${column.name}" `
 
     if (column.isPrimaryKey && column.isGenerated) {
-      colDef += 'INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL'
+      colDef += 'integer PRIMARY KEY AUTOINCREMENT NOT NULL'
     } else if (column.isPrimaryKey) {
-      colDef += 'INTEGER PRIMARY KEY NOT NULL'
+      colDef += 'integer PRIMARY KEY NOT NULL'
     } else {
       const sqlType = this.buildColumnType(column)
       colDef += sqlType
 
       if (column.defaultValue) {
-        if (column.defaultValue === 'now()') {
-          colDef += " DEFAULT (datetime('now'))"
-        } else if (column.defaultValue === 'CURRENT_TIMESTAMP') {
-          colDef += ' DEFAULT CURRENT_TIMESTAMP'
-        } else {
-          colDef += ` DEFAULT ${column.defaultValue}`
-        }
+        colDef += ` ${this.#buildDefaultValue(column.defaultValue)}`
       }
 
       if (!column.nullable) {
@@ -136,15 +127,21 @@ export class SqliteDialect extends BaseDialect {
 
     if (column.isUnique && !column.isPrimaryKey) {
       constraints.push(
-        `  CONSTRAINT "${this.#getConstraintName(column, 'unique')}" UNIQUE("${column.name}")`,
+        `  CONSTRAINT "${this.getConstraintName(column, 'unique')}" UNIQUE("${column.name}")`,
       )
     }
 
     return colDef
   }
 
-  #getConstraintName(column: ColumnDefinition, id: string) {
-    return `${column.tableName}_${snakeCase(column.name)}_${snakeCase(id)}}`
+  #buildDefaultValue(defaultValue: string) {
+    if (defaultValue === 'now()') {
+      return "DEFAULT (datetime('now')"
+    } else if (defaultValue === 'CURRENT_TIMESTAMP') {
+      return 'DEFAULT CURRENT_TIMESTAMP'
+    } else {
+      return `DEFAULT ${defaultValue}`
+    }
   }
 
   buildTable(table: TableDefinition): string {
@@ -171,69 +168,5 @@ export class SqliteDialect extends BaseDialect {
     sql += '\n);'
 
     return sql
-  }
-
-  private buildTableLevelReferences(table: TableDefinition): string[] {
-    const constraints: string[] = []
-
-    for (const column of table.columns) {
-      if (column.referencesTable && column.referencesColumn) {
-        let constraint = `  FOREIGN KEY("${column.name}") REFERENCES "${
-          column.referencesTable
-        }"("${column.referencesColumn}")`
-
-        constraints.push(constraint)
-      }
-    }
-
-    return constraints
-  }
-
-  buildIndexes(indexes: IndexDefinition[]): string[] {
-    const indexStatements: string[] = []
-    const indexSignatures = new Set<string>()
-
-    for (const index of indexes) {
-      const signature = `${index.tableName}:${index.columns.join(',')}`
-
-      if (indexSignatures.has(signature)) {
-        throw new Error(
-          `Duplicate index detected: An index on table "${index.tableName}" with columns [${index.columns.join(
-            ', ',
-          )}] has been defined multiple times.`,
-        )
-      }
-
-      indexSignatures.add(signature)
-
-      this.validateTableExists(index.tableName)
-      for (const column of index.columns) {
-        this.validateColumnExists(index.tableName, column)
-      }
-
-      let indexName: string
-
-      if (index.options?.name) {
-        indexName = index.options.name
-      } else {
-        const snakeCaseColumns = index.columns.map(snakeCase)
-        indexName = `idx_${index.tableName}_${snakeCaseColumns.join('_')}`
-      }
-
-      const indexType = index.options?.unique
-        ? 'CREATE UNIQUE INDEX'
-        : 'CREATE INDEX'
-      const columns = index.columns.map((col) => `"${col}"`).join(', ')
-
-      indexStatements.push(
-        `${indexType} IF NOT EXISTS "${indexName}" ON "${index.tableName}" (${columns});`,
-      )
-    }
-
-    return indexStatements
-  }
-
-  buildReferences(_table: TableDefinition): string[] {
-    return []
   }
 }

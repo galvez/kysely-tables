@@ -1,13 +1,14 @@
-import { Generated } from 'kysely'
-
+import SQLite3Database from 'better-sqlite3'
+import { Generated, SqliteDialect } from 'kysely'
 import {
+  createDatabase,
   Reference,
   Unique,
   Default,
   Primary,
   Text,
   Sized,
-} from '../index.js'
+} from 'kysely-tables'
 
 export interface UsersTable {
   id: Generated<Primary<number>>
@@ -59,20 +60,13 @@ export interface InvitationsTable {
   status: string
 }
 
-export enum ActivityType {
-  SIGN_UP = 'SIGN_UP',
-  SIGN_IN = 'SIGN_IN',
-  SIGN_OUT = 'SIGN_OUT',
-  UPDATE_PASSWORD = 'UPDATE_PASSWORD',
-  DELETE_ACCOUNT = 'DELETE_ACCOUNT',
-  UPDATE_ACCOUNT = 'UPDATE_ACCOUNT',
-  CREATE_TEAM = 'CREATE_TEAM',
-  REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
-  INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
-  ACCEPT_INVITATION = 'ACCEPT_INVITATION',
+export interface Database {
+  users: UsersTable
+  teams: TeamsTable
+  teamMembers: TeamMembersTable
+  activityLog: ActivityLogTable
+  invitations: InvitationsTable
 }
-
-import SQLite3Database from 'better-sqlite3'
 
 const driver = new SQLite3Database('database.sqlite')
 const dialect = new SqliteDialect({ database: driver })

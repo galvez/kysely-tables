@@ -1,4 +1,6 @@
-import { Sized, Text } from 'kysely-tables'
+import SQLite3Database from 'better-sqlite3'
+import { SqliteDialect } from 'kysely'
+import { createDatabase, Sized, Text } from 'kysely-tables'
 
 export interface WithStringFieldsTable {
   field_string: string
@@ -12,8 +14,6 @@ export interface WithStringFieldsTable {
 export interface Database {
   withStringsField: WithStringFieldsTable
 }
-
-import SQLite3Database from 'better-sqlite3'
 
 const driver = new SQLite3Database('database.sqlite')
 const dialect = new SqliteDialect({ database: driver })

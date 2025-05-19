@@ -13,9 +13,5 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": [
-    "src/**/*.test.ts", 
-    "src/fixtures/**",
-    "src/examples/**"
-  ]
+  "exclude": ["src/**/*.test.ts", "src/fixtures/**", "src/examples/**"]
 }

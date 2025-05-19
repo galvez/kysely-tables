@@ -1,18 +1,12 @@
 import { diff as jsonDiff } from 'json-diff'
-import stringify from 'fast-safe-stringify'
+import { snakeCase } from 'scule'
+
 import {
   DialectAdapter,
   TableDefinition,
-  IndexDefinition,
   ColumnDefinition,
   SchemaRevisionStatement,
 } from '../types'
-
-// const diffStates = {
-//   modified: Symbol('modified'),
-//   deleted: Symbol('deleted'),
-//   added: Symbol('added'),
-// }
 
 export abstract class BaseDialect implements DialectAdapter {
   tables?: TableDefinition[]
@@ -22,7 +16,9 @@ export abstract class BaseDialect implements DialectAdapter {
   }
 
   abstract buildPreamble(): string
-  abstract buildSchemaReset(tables?: TableDefinition[]): SchemaRevisionStatement[]
+  abstract buildSchemaReset(
+    tables?: TableDefinition[],
+  ): SchemaRevisionStatement[]
   abstract buildTableDrop(
     name: string,
     ifExists?: boolean,
@@ -33,8 +29,6 @@ export abstract class BaseDialect implements DialectAdapter {
   ): SchemaRevisionStatement
   abstract buildColumn(column: ColumnDefinition, constraints?: string[]): string
   abstract buildTable(table: TableDefinition): string
-  abstract buildIndexes(indexes: IndexDefinition[]): string[]
-  abstract buildReferences(table: TableDefinition): string[]
 
   buildSchemaRevisions(
     tables: TableDefinition[],
@@ -91,7 +85,47 @@ export abstract class BaseDialect implements DialectAdapter {
     }
   }
 
-  protected validateTableExists(tableName: string): void {
+  getConstraintName(column: ColumnDefinition, id: string) {
+    return `${column.tableName}_${snakeCase(column.name)}_${snakeCase(id)}`
+  }
+
+  getFKConstraintName(
+    column: ColumnDefinition,
+    referencedTable: string,
+    referencedColumn: string,
+  ): string {
+    const columnName = snakeCase(column.name)
+    return `${columnName}_${referencedTable}_${referencedColumn}_fk`
+  }
+
+  buildTableLevelReferences(table: TableDefinition): string[] {
+    const constraints: string[] = []
+
+    for (const column of table.columns) {
+      if (column.referencesTable && column.referencesColumn) {
+        const referencedColumn = snakeCase(
+          column.referencesColumn!.slice(1, -1),
+        )
+        const referencedTable = snakeCase(column.referencesTable!)
+
+        const constraintName = this.getFKConstraintName(
+          column,
+          referencedColumn,
+          referencedTable,
+        )
+
+        const constraint = `  CONSTRAINT "${constraintName}" FOREIGN KEY("${
+          column.name
+        }") REFERENCES "${referencedTable}"("${referencedColumn}")`
+
+        constraints.push(constraint)
+      }
+    }
+
+    return constraints
+  }
+
+  validateTableExists(tableName: string): void {
     if (!this.tables) {
       throw new Error('Tables not populated for this instance')
     }
@@ -101,7 +135,7 @@ export abstract class BaseDialect implements DialectAdapter {
     }
   }
 
-  protected validateColumnExists(tableName: string, columnName: string): void {
+  validateColumnExists(tableName: string, columnName: string): void {
     if (!this.tables) {
       throw new Error('Tables not populated for this instance')
     }

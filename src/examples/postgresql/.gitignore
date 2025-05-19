@@ -1,3 +1,4 @@
+.env
 database.sqlite
 database.snapshot.ts
 database.sql

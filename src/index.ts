@@ -15,14 +15,7 @@ export type {
   BuildSchemaOptions,
 } from './types'
 
-export type {
-  Reference,
-  Unique,
-  Default,
-  Primary,
-  Sized,
-  Text,
-} from './types'
+export type { Reference, Unique, Default, Primary, Sized, Text } from './types'
 
 type CreateSQLSchemaFromFileOptions = {
   filePath: string

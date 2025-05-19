@@ -1,8 +1,6 @@
-import { snakeCase } from 'scule'
 import { BaseDialect } from './base'
 import {
   TableDefinition,
-  IndexDefinition,
   ColumnDefinition,
   SchemaRevisionStatement,
 } from '../types'
@@ -54,7 +52,7 @@ export class PostgresDialect extends BaseDialect {
               changes.push('DROP NOT NULL')
             }
           } else if (key === 'tsType') {
-            cType = `SET TYPE ${this.buildColumnPrimitiveType(columnDiff[key].__new)}`
+            cType = `SET TYPE ${this.#buildColumnPrimitiveType(columnDiff[key].__new)}`
           }
         }
       }
@@ -68,7 +66,7 @@ export class PostgresDialect extends BaseDialect {
         }
         if (_key === 'isUnique') {
           changes.push(
-            `DROP CONSTRAINT "${this.#getConstraintName(
+            `DROP CONSTRAINT "${this.getConstraintName(
               columnDiff.__original,
               'unique',
             )}"`,
@@ -76,7 +74,7 @@ export class PostgresDialect extends BaseDialect {
         }
         if (_key === 'isPrimaryKey') {
           changes.push(
-            `DROP CONSTRAINT "${this.#getConstraintName(
+            `DROP CONSTRAINT "${this.getConstraintName(
               columnDiff.__original,
               'primary',
             )}"`,
@@ -97,15 +95,15 @@ export class PostgresDialect extends BaseDialect {
         }
         if (_key === 'isPrimary') {
           changes.push(
-            `ADD CONSTRAINT "${this.#getConstraintName(
+            `ADD CONSTRAINT "${this.getConstraintName(
               columnDiff.__original,
-              'PRIMARY',
+              'primary',
             )} PRIMARY KEY ("${columnDiff.__original.name}")`,
           )
         }
         if (_key === 'isUnique') {
           changes.push(
-            `ADD CONSTRAINT "${this.#getConstraintName(
+            `ADD CONSTRAINT "${this.getConstraintName(
               columnDiff.__original,
               'unique',
             )}" UNIQUE ("${columnDiff.__original.name}")`,
@@ -152,10 +150,10 @@ export class PostgresDialect extends BaseDialect {
       return 'text'
     }
 
-    return this.buildColumnPrimitiveType(column.tsType ?? '')
+    return this.#buildColumnPrimitiveType(column.tsType ?? '')
   }
 
-  buildColumnPrimitiveType(tsType: string): string {
+  #buildColumnPrimitiveType(tsType: string): string {
     switch (tsType) {
       case 'string':
         return 'varchar(255)'
@@ -190,12 +188,12 @@ export class PostgresDialect extends BaseDialect {
 
     if (column.isPrimaryKey) {
       constraints.push(
-        `  CONSTRAINT "${this.#getConstraintName(column, 'primary')}" PRIMARY KEY ("${column.name}")`,
+        `  CONSTRAINT "${this.getConstraintName(column, 'primary')}" PRIMARY KEY ("${column.name}")`,
       )
     }
     if (column.isUnique && !column.isPrimaryKey) {
       constraints.push(
-        `  CONSTRAINT "${this.#getConstraintName(column, 'unique')}" UNIQUE ("${column.name}")`,
+        `  CONSTRAINT "${this.getConstraintName(column, 'unique')}" UNIQUE ("${column.name}")`,
       )
     }
 
@@ -210,10 +208,6 @@ export class PostgresDialect extends BaseDialect {
     } else {
       return `DEFAULT ${defaultValue}`
     }
-  }
-
-  #getConstraintName(column: ColumnDefinition, id: string) {
-    return `${column.tableName}_${snakeCase(column.name)}_${snakeCase(id)}`
   }
 
   buildTable(table: TableDefinition): string {
@@ -241,76 +235,6 @@ export class PostgresDialect extends BaseDialect {
     sql += '\n);'
 
     return sql
-  }
-
-  buildIndexes(indexes: IndexDefinition[]): string[] {
-    const indexStatements: string[] = []
-    const indexSignatures = new Set<string>()
-
-    for (const index of indexes) {
-      const signature = `${index.tableName}:${index.columns.join(',')}`
-
-      if (indexSignatures.has(signature)) {
-        throw new Error(
-          `Duplicate index detected: An index on table "${index.tableName}" with columns [${index.columns.join(
-            ', ',
-          )}] has been defined multiple times.`,
-        )
-      }
-
-      indexSignatures.add(signature)
-
-      this.validateTableExists(index.tableName)
-
-      for (const column of index.columns) {
-        this.validateColumnExists(index.tableName, column)
-      }
-
-      let indexName: string
-
-      if (index.options?.name) {
-        indexName = index.options.name
-      } else {
-        const snakeCaseColumns = index.columns.map(snakeCase)
-        indexName = `idx_${index.tableName}_${snakeCaseColumns.join('_')}`
-      }
-
-      const indexType = index.options?.unique
-        ? 'CREATE UNIQUE INDEX'
-        : 'CREATE INDEX'
-      const columns = index.columns.map((col) => `"${col}"`).join(', ')
-
-      indexStatements.push(
-        `${indexType} "${indexName}" ON "${index.tableName}"(${columns});`,
-      )
-    }
-
-    return indexStatements
-  }
-
-  buildReferences(_table: TableDefinition): string[] {
-    return []
-  }
-
-  private buildTableLevelReferences(table: TableDefinition): string[] {
-    const constraints: string[] = []
-
-    for (const column of table.columns) {
-      if (column.referencesTable && column.referencesColumn) {
-        const snakeCaseColumnName = snakeCase(column.name)
-        const snakeCaseReferencedColumn = snakeCase(column.referencesColumn)
-
-        const constraintName = `${snakeCaseColumnName}_${column.referencesTable}_${snakeCaseReferencedColumn}_fk`
-
-        let constraint = `  CONSTRAINT "${constraintName}" FOREIGN KEY("${column.name}") REFERENCES "${
-          column.referencesTable
-        }"("${column.referencesColumn}")`
-
-        constraints.push(constraint)
-      }
-    }
-
-    return constraints
   }
 }
 

@@ -1,7 +1,7 @@
 import type { Pool, PoolClient } from 'pg'
 import type { Database as SqliteDatabase } from 'better-sqlite3'
 
-import { PostgresDialect } from './dialects/pgsql'
+import { PostgresDialect } from './dialects/postgres'
 import { SqliteDialect } from './dialects/sqlite'
 
 export type DatabaseDriver = Pool | PoolClient | SqliteDatabase
@@ -24,8 +24,6 @@ export interface DialectAdapter {
   ): SchemaRevisionStatement
   buildColumn(column: ColumnDefinition, constraints?: string[]): string
   buildTable(table: TableDefinition): string
-  buildIndexes(indexes: IndexDefinition[]): string[]
-  buildReferences(table: TableDefinition): string[]
 }
 
 export type BuildSchemaOptions = {
@@ -57,15 +55,6 @@ export interface TableDefinition {
   columns: ColumnDefinition[]
 }
 
-export interface IndexDefinition {
-  tableName: string
-  columns: string[]
-  options?: {
-    unique?: boolean
-    name?: string
-  }
-}
-
 export type SchemaRevisionStatement = {
   sql?: string
   invalid?: { key: string; message: string }[]
@@ -79,8 +68,3 @@ export type Default<T, _V> = T
 export type Primary<T> = T
 export type Sized<T extends string | null, _Size extends number> = T
 export type Text<T extends string | null> = T
-
-// TODO index definitions
-// export type Keys<T extends string[]> = T
-// export type Index<_Table, Columns> = Columns
-// export type UniqueIndex<_Table, Columns> = Columns

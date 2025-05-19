@@ -249,7 +249,7 @@ async function createSchemaRevision(
       for (const { key, message } of rev.invalid) {
         log.error(
           pc.redBright(
-            `Couldn\'t create revision for column ${pc.cyan(key)}.\n${message
+            `Couldn't create revision for column ${pc.cyan(key)}.\n${message
               .split('\n')
               .map(pc.yellowBright)
               .join('\n')}`,
@@ -277,7 +277,7 @@ async function createSchemaRevision(
       for (const { key, message } of rev.invalid) {
         log.error(
           pc.redBright(
-            `Couldn\'t create revision for column ${pc.cyan(key)}.\n${message
+            `Couldn't create revision for column ${pc.cyan(key)}.\n${message
               .split('\n')
               .map(pc.yellowBright)
               .join('\n')}`,

@@ -1,58 +1,58 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS "users" (
-  "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  "name" TEXT,
-  "email" TEXT NOT NULL UNIQUE,
-  "passwordHash" TEXT NOT NULL,
-  "role" TEXT DEFAULT 'member' NOT NULL,
-  "createdAt" TEXT DEFAULT now() NOT NULL,
-  "updatedAt" TEXT DEFAULT now() NOT NULL,
-  "deletedAt" TEXT
+  "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  "name" text,
+  "email" text NOT NULL,
+  "passwordHash" text NOT NULL,
+  "role" text DEFAULT 'member' NOT NULL,
+  "createdAt" text DEFAULT (datetime('now') NOT NULL,
+  "updatedAt" text DEFAULT (datetime('now') NOT NULL,
+  "deletedAt" text,
+  CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 
 CREATE TABLE IF NOT EXISTS "teams" (
-  "id" TEXT NOT NULL,
-  "name" TEXT NOT NULL,
-  "createdAt" TEXT DEFAULT now() NOT NULL,
-  "updatedAt" TEXT DEFAULT now() NOT NULL,
-  "stripeCustomerId" TEXT UNIQUE,
-  "stripeSubscriptionId" TEXT UNIQUE,
-  "stripeProductId" TEXT,
-  "planName" TEXT,
-  "subscriptionStatus" TEXT
+  "id" integer NOT NULL,
+  "name" text NOT NULL,
+  "createdAt" text DEFAULT (datetime('now') NOT NULL,
+  "updatedAt" text DEFAULT (datetime('now') NOT NULL,
+  "stripeCustomerId" text,
+  "stripeSubscriptionId" text,
+  "stripeProductId" text,
+  "planName" text,
+  "subscriptionStatus" text,
+  CONSTRAINT "teams_stripe_customer_id_unique" UNIQUE("stripeCustomerId"),
+  CONSTRAINT "teams_stripe_subscription_id_unique" UNIQUE("stripeSubscriptionId")
 );
 
 CREATE TABLE IF NOT EXISTS "team_members" (
-  "id" TEXT NOT NULL,
-  "userId" TEXT NOT NULL,
-  "teamId" TEXT NOT NULL,
-  "role" TEXT NOT NULL,
-  "joinedAt" TEXT NOT NULL,
-  FOREIGN KEY("userId") REFERENCES "UsersTable"("'id'"),
-  FOREIGN KEY("teamId") REFERENCES "TeamsTable"("'id'")
+  "id" integer NOT NULL,
+  "userId" integer NOT NULL,
+  "teamId" integer NOT NULL,
+  "role" text NOT NULL,
+  "joinedAt" text NOT NULL,
+  CONSTRAINT "user_id_id_users_table_fk" FOREIGN KEY("userId") REFERENCES "users_table"("id"),
+  CONSTRAINT "team_id_id_teams_table_fk" FOREIGN KEY("teamId") REFERENCES "teams_table"("id")
 );
 
 CREATE TABLE IF NOT EXISTS "activity_log" (
-  "id" TEXT NOT NULL,
-  "teamId" TEXT NOT NULL,
-  "userId" TEXT,
-  "action" TEXT NOT NULL,
-  "timestamp" TEXT NOT NULL,
-  "ipAddress" TEXT
+  "id" integer NOT NULL,
+  "teamId" integer NOT NULL,
+  "userId" integer,
+  "action" text NOT NULL,
+  "timestamp" text NOT NULL,
+  "ipAddress" text
 );
 
 CREATE TABLE IF NOT EXISTS "invitations" (
-  "id" TEXT NOT NULL,
-  "teamId" TEXT NOT NULL,
-  "email" TEXT NOT NULL,
-  "role" TEXT NOT NULL,
-  "invitedBy" TEXT NOT NULL,
-  "invitedAt" TEXT DEFAULT now() NOT NULL,
-  "status" TEXT NOT NULL,
-  FOREIGN KEY("teamId") REFERENCES "TeamsTable"("'id'"),
-  FOREIGN KEY("invitedBy") REFERENCES "UsersTable"("'id'")
+  "id" integer NOT NULL,
+  "teamId" integer NOT NULL,
+  "email" text NOT NULL,
+  "role" text NOT NULL,
+  "invitedBy" integer NOT NULL,
+  "invitedAt" text DEFAULT (datetime('now') NOT NULL,
+  "status" text NOT NULL,
+  CONSTRAINT "team_id_id_teams_table_fk" FOREIGN KEY("teamId") REFERENCES "teams_table"("id"),
+  CONSTRAINT "invited_by_id_users_table_fk" FOREIGN KEY("invitedBy") REFERENCES "users_table"("id")
 );
-
-CREATE UNIQUE INDEX IF NOT EXISTS "idx_team_members_team_id_user_id" ON "team_members" ("teamId", "userId");
-

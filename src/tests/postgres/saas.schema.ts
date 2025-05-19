@@ -1,13 +1,15 @@
-import { Generated } from 'kysely'
+import { Pool } from 'pg'
+import { PostgresDialect, Generated } from 'kysely'
 
 import {
+  createDatabase,
   Reference,
   Unique,
   Default,
   Primary,
   Text,
   Sized,
-} from '../index.js'
+} from 'kysely-tables'
 
 export interface UsersTable {
   id: Generated<Primary<number>>
@@ -59,15 +61,21 @@ export interface InvitationsTable {
   status: string
 }
 
-export enum ActivityType {
-  SIGN_UP = 'SIGN_UP',
-  SIGN_IN = 'SIGN_IN',
-  SIGN_OUT = 'SIGN_OUT',
-  UPDATE_PASSWORD = 'UPDATE_PASSWORD',
-  DELETE_ACCOUNT = 'DELETE_ACCOUNT',
-  UPDATE_ACCOUNT = 'UPDATE_ACCOUNT',
-  CREATE_TEAM = 'CREATE_TEAM',
-  REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
-  INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
-  ACCEPT_INVITATION = 'ACCEPT_INVITATION',
+export interface Database {
+  users: UsersTable
+  teams: TeamsTable
+  teamMembers: TeamMembersTable
+  activityLog: ActivityLogTable
+  invitations: InvitationsTable
 }
+
+const connectionString = process.env.DATABASE_URI
+const driver = new Pool({ connectionString })
+const dialect = new PostgresDialect({ pool: driver })
+
+export default createDatabase<Database>({
+  driver,
+  config: {
+    dialect,
+  },
+})

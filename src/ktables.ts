@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { snakeCase } from 'scule'
 
-import { extractType, extractKeysFromType, extractDialect } from './tree'
+import { extractType, extractDialect } from './tree'
 
 import {
   Dialect,
@@ -12,14 +12,12 @@ import {
   BuildSchemaOptions,
   TableDefinition,
   ColumnDefinition,
-  IndexDefinition,
   SchemaRevisionStatement,
 } from './types'
 
 export class KyselyTables {
   tables: TableDefinition[]
   dialect?: Dialect
-  indexes: IndexDefinition[] = []
   sourceFile: ts.SourceFile
   #tableInterfaces: Set<string>
 
@@ -27,7 +25,6 @@ export class KyselyTables {
 
   constructor(options: BuildSchemaOptions) {
     this.tables = []
-    this.indexes = []
 
     this.#tableInterfaces = new Set()
     this.#adapter = null
@@ -136,67 +133,9 @@ export class KyselyTables {
     ts.forEachChild(node, this.#registerTableColumns.bind(this))
   }
 
-  #registerIndexes(node: ts.Node): void {
-    if (ts.isTypeAliasDeclaration(node) && node.name.text === 'Indexes') {
-      const isExported = node.modifiers?.some(
-        (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
-      )
-      if (!isExported) {
-        return
-      }
-
-      this.#extractIndexesFromType(node.type)
-    }
-
-    ts.forEachChild(node, this.#registerIndexes.bind(this))
-  }
-
-  #extractIndexesFromType(typeNode: ts.TypeNode): void {
-    if (ts.isUnionTypeNode(typeNode)) {
-      for (const type of typeNode.types) {
-        this.#extractSingleIndex(type)
-      }
-    } else {
-      this.#extractSingleIndex(typeNode)
-    }
-  }
-
-  #extractSingleIndex(typeNode: ts.TypeNode): void {
-    if (
-      ts.isTypeReferenceNode(typeNode) &&
-      ts.isIdentifier(typeNode.typeName)
-    ) {
-      const typeName = typeNode.typeName.text
-
-      if (typeName === 'Index' || typeName === 'UniqueIndex') {
-        if (typeNode.typeArguments && typeNode.typeArguments.length >= 2) {
-          const tableType = typeNode.typeArguments[0]
-          let tableName = ''
-
-          if (
-            ts.isTypeReferenceNode(tableType) &&
-            ts.isIdentifier(tableType.typeName)
-          ) {
-            tableName = this.#getTableNameFromInterface(tableType.typeName.text)
-          }
-
-          const columnsType = typeNode.typeArguments[1]
-          const columns = extractKeysFromType(columnsType)
-
-          if (tableName && columns.length > 0) {
-            const options =
-              typeName === 'UniqueIndex' ? { unique: true } : undefined
-            this.indexes.push({ tableName, columns, options })
-          }
-        }
-      }
-    }
-  }
-
   buildSchema(): string[] {
     this.#registerTables(this.sourceFile)
     this.#registerTableColumns(this.sourceFile)
-    this.#registerIndexes(this.sourceFile)
 
     if (!this.dialect) {
       throw new Error('Missing `dialect` export.')
@@ -206,26 +145,14 @@ export class KyselyTables {
 
     let sql = []
 
-    const preamble = this.#adapter.buildPreamble()
+    const preamble = this.#adapter!.buildPreamble()
     if (preamble) {
       sql.push(preamble)
     }
 
     if (this.tables.length) {
       for (const table of this.tables) {
-        sql.push(this.#adapter.buildTable(table))
-      }
-    }
-
-    if (this.indexes.length > 0) {
-      for (const index of this.#adapter.buildIndexes(this.indexes)) {
-        sql.push(index)
-      }
-    }
-
-    for (const table of this.tables) {
-      for (const constraint of this.#adapter.buildReferences(table)) {
-        sql.push(constraint)
+        sql.push(this.#adapter!.buildTable(table))
       }
     }
 
@@ -243,7 +170,7 @@ export class KyselyTables {
       throw new Error('Missing `dialect` export.')
     }
     this.#adapter = new this.dialect(this.tables)
-    return this.#adapter.buildSchemaReset()
+    return this.#adapter!.buildSchemaReset()
   }
 
   buildSchemaRevisions(tablesSnapshot: TableDefinition[]): {
@@ -256,11 +183,11 @@ export class KyselyTables {
     }
     this.#adapter = new this.dialect(this.tables)
     return {
-      up: this.#adapter.buildSchemaRevisions(
+      up: this.#adapter!.buildSchemaRevisions(
         structuredClone(this.tables),
         structuredClone(tablesSnapshot),
       ),
-      down: this.#adapter.buildSchemaRevisions(
+      down: this.#adapter!.buildSchemaRevisions(
         structuredClone(tablesSnapshot),
         structuredClone(this.tables),
       ),

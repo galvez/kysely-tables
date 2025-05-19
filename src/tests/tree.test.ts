@@ -1,8 +1,8 @@
 import ts from 'typescript'
 import test from 'node:test'
-import { ColumnDefinition } from './types'
+import { ColumnDefinition } from '../types'
 import { equal } from 'node:assert'
-import { extractType, extractNullableType, createSourceFragment } from './tree'
+import { extractType, extractNullableType, createSourceFragment } from '../tree'
 
 test('extractNullableType()', () => {
   equal(extractNullableType('Date | undefined')!.getText(), 'Date')
