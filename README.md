@@ -215,7 +215,7 @@ The trickiest part of the library is the schema diff detection.
 
 This first iteration uses [`json-diff`](https://github.com/andreyvit/json-diff), which is quite nice, but it still required some [massive data reconciliation glue code](https://github.com/galvez/kysely-tables/blob/dev/package/dialects/base.ts#L158). I aged six months in a week writing that function and do not recommend obssessing over it unless you have a very good alternative in mind and are willing to venture into the dark.
 
-The [embedded runner](https://github.com/galvez/kysely-tables/blob/dev/package/runner.ts) that turns `db.ts` into a CLI is as simple as it can get. It isues [`minimist`](https://www.npmjs.com/package/minimist) for `process.argv` parsing and [`@clack/prompts`](https://www.npmjs.com/package/@clack/prompts) for the nice flows.
+The [embedded runner](https://github.com/galvez/kysely-tables/blob/dev/package/runner.ts) that turns `db.ts` into a CLI is as simple as it can get. It uses [`minimist`](https://www.npmjs.com/package/minimist) for `process.argv` parsing and [`@clack/prompts`](https://www.npmjs.com/package/@clack/prompts) for the nice flows.
 
 This should be enough for you to start digging and contribute if you wish!
 
