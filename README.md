@@ -174,7 +174,7 @@ The main class uses a `DialectAdapter` to generate the correct SQL statements fo
 
 As for parsing each column definition, it's done by a helper function called `extractType()`, which will check for all special types and use them to populate flags in each `ColumnDefinition`.
 
-The trickiest part of the library is the schema diff detection. This first iteration uses [`json-diff`](https://github.com/andreyvit/json-diff), which is quite nice, but it still required some [massive data reconciliation glue code](https://github.com/galvez/kysely-tables/blob/dev/package/dialects/base.ts#L158). I aged six months in a week writing that function, do not recommend obssessing over unless you have a very good alternative in mind and are willing to venture into the dark.
+The trickiest part of the library is the schema diff detection. This first iteration uses [`json-diff`](https://github.com/andreyvit/json-diff), which is quite nice, but it still required some [massive data reconciliation glue code](https://github.com/galvez/kysely-tables/blob/dev/package/dialects/base.ts#L158). I aged six months in a week writing that function and do not recommend obssessing over it unless you have a very good alternative in mind and are willing to venture into the dark.
 
 This should be enough for you to start digging and contribute if you wish!
 
