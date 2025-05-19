@@ -11,7 +11,6 @@ export type {
   DialectAdapter,
   ColumnDefinition,
   TableDefinition,
-  IndexDefinition,
   BuildSchemaOptions,
 } from './types'
 
