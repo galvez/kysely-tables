@@ -24,6 +24,8 @@
 >
 > Bug reports and feature requests are extremely welcome.
 
+[**Read the blog post.**](https://hire.jonasgalvez.com.br/2025/may/19/kysely-tables/)
+
 ## Tutorial
 
 1. Check out this repository, `pnpm install` and `cd` to [`./examples/sqlite`](https://github.com/galvez/kysely-tables/tree/main/examples/sqlite).
