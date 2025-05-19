@@ -8,10 +8,10 @@
     "outDir": "dist",
     "declaration": true,
     "paths": {
-      "kysely-tables": ["./src/index"],
-      "kysely-tables/runner": ["./src/runner"]
+      "kysely-tables": ["./index"],
+      "kysely-tables/runner": ["./runner"]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/**/*.test.ts", "src/fixtures/**", "src/examples/**"]
+  "include": ["./**/*"],
+  "exclude": ["./**/*.test.ts", "./fixtures/**", "./examples/**"]
 }

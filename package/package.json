@@ -8,7 +8,7 @@
     "build": "tsc",
     "format": "prettier -w --no-semi --single-quote .",
     "lint": "oxlint . && pnpm format",
-    "test": "tsx --test src/tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts"
   },
   "keywords": [
     "typescript",
