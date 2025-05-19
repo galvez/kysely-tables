@@ -14,37 +14,29 @@
 
 ## Tutorial
 
-1. Check out this repository, `pnpm install` and `cd` to [`./example`](https://github.com/galvez/kysely-tables/tree/main/src/example).
+1. Check out this repository, `pnpm install` and `cd` to [`./example/sqlite`](https://github.com/galvez/kysely-tables/tree/main/examples/sqlite).
 
-2. Inspect `database.ts` to see how tables are defined. Note that these types are fully Kysely-compatible. The schema types serve as hints for schema generation, but Kysely receives the underlying types it expects.
+2. Inspect `db.ts` to see how tables are defined. Note that these types are fully Kysely-compatible. The schema types serve as hints for schema generation, but Kysely receives the underlying types it expects.
 
    ```ts
    export interface UsersTable {
      id: Generated<Primary<number>>
-     fname: Sized<string, 100> | null
+     name: Sized<string, 100> | null
      email: Unique<Sized<string, 255>>
      passwordHash: Text<string>
      role: Default<string, "'member'">
      createdAt: Default<Date, 'now()'>
      updatedAt: Default<Date, 'now()'>
-   }
-
-   export interface ActivityLogTable {
-     id: number
-     teamId: number
-     userId: Reference<UsersTable, 'id', number>
-     action: string
-     timestamp: Date
-     ipAddress: string | null
+     deletedAt: null | Date 
    }
    ```
 
    In order for a table to recognized as such, the interface name needs to end with `Table`. Note also how we can use Kysely's [`Generated`](https://kysely-org.github.io/kysely-apidoc/types/Generated.html) type together with this library's schema types. Same is true for [`ColumnType`](https://kysely-org.github.io/kysely-apidoc/types/ColumnType.html).
 
-3. Still in `database.ts`, you'll notice how the Kysely database instance is created through a wrapper, `createDatabase()`, and also that `dialect` is a top-level export.
+3. Still in `db.ts`, you'll notice how the Kysely database instance is created through a wrapper, `createDatabase()`, and also that `dialect` is a top-level export.
 
    ```ts
-   const driver = new SQLite3Database('database.sqlite')
+   const driver = new SQLite3Database('db.sqlite')
    const dialect = new SqliteDialect({ database: driver })
 
    export default createDatabase<Database>({
@@ -61,21 +53,29 @@
 
 5. Let's begin by creating the database and applying the initial table schema:
 
-   `% tsx database.tb --create`
+   `% tsx db.tb --create`
 
-   <img width="512" alt="SCR-20250517-eyxp" src="https://github.com/user-attachments/assets/85a51124-88f6-4b0a-805c-5b1316d153f2" />
+   <img width="612" alt="SCR-20250518-uhmg" src="https://github.com/user-attachments/assets/722062b9-dcb7-4b2f-a015-35cae2ef063a" />
 
-   Proceed and you'll see that `database.snapshot.ts` is also created.
+   Proceed and you'll see that both `database.sql` and `database.snapshot.ts` are created.
 
-   <img width="512" alt="SCR-20250517-ezkw" src="https://github.com/user-attachments/assets/26402d6e-aa44-4f3f-a25d-410808cc3670" />
+   <img width="612" alt="SCR-20250518-uiux" src="https://github.com/user-attachments/assets/9f875afd-bac8-470f-9ba1-764aebbe4254" />
 
-   This file is used for diffing purposes: when you change `database.ts`, the runner can know how the schema changed. Now let's create a **migration**, referred to as **schema revision** in this library.
+   This _snapshot_ file is used for diffing purposes: when you change `db.ts`, the runner can know how the schema changed. Now let's create a **migration**, referred to as **schema revision** in this library.
 
-6. Edit `database.ts` and remove any column from any table. Then run:
+6. Edit `db.ts` and remove any column from `UsersTable`. Then run:
 
-   `% tsx database.tb --revision`
+   `% tsx db.tb --revision`
 
-   <img width="512" alt="SCR-20250517-fnqr" src="https://github.com/user-attachments/assets/7a55b4ae-05b8-4598-a673-ee8fb93e75c5" />
+   <img width="922" alt="SCR-20250518-ukwr" src="https://github.com/user-attachments/assets/f0ddeb7d-4511-4d76-95f7-052d434e8923" />
+
+Running with `--revision <rev>` gives a custom name to the revision.
+
+Running with `--apply` bypasses the check.
+
+Running only with `--apply` will sync up to the latest revision.
+
+Running only with `--apply <rev>` will sync up (or down) to the specified revision.
 
 Even though `kysely-tables` is responsible for diffing and generating the SQL statements, the migrations run through [Postgrator](https://github.com/rickbergfalk/postgrator) under the hood. Postgrator is a mature and extremely well tested migration runner with support for PostgreSQL, SQLite, MySQL and MSSQL. It's used by [Platformatic](https://github.com/platformatic/platformatic).
 
@@ -173,6 +173,8 @@ The main class is `KyselyTables`, which provides the `buildSchema()`, `buildSche
 The main class uses a `DialectAdapter` to generate the correct SQL statements for the database used.
 
 As for parsing each column definition, it's done by a helper function called `extractType()`, which will check for all special types and use them to populate flags in each `ColumnDefinition`.
+
+The trickiest part of the library is the schema diff detection. This first iteration uses [`json-diff`](https://github.com/andreyvit/json-diff), which is quite nice, but it still required some [massive data reconciliation glue code](https://github.com/galvez/kysely-tables/blob/dev/package/dialects/base.ts#L158). I aged six months in a week writing that function, do not recommend obssessing over unless you have a very good alternative in mind and are willing to venture into the dark.
 
 This should be enough for you to start digging and contribute if you wish!
 
