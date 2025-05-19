@@ -51,7 +51,7 @@
 
    ```ts
    const driver = new SQLite3Database('db.sqlite')
-   const dialect = new SqliteDialect({ database: driver })
+   export const dialect = new SqliteDialect({ database: driver })
 
    export default createDatabase<Database>({
      driver,
@@ -67,7 +67,7 @@
 
 5. Let's begin by creating the database and applying the initial table schema:
 
-   `% tsx db.tb --create`
+   `% tsx db.ts --create`
 
    <img width="612" alt="SCR-20250518-uhmg" src="https://github.com/user-attachments/assets/722062b9-dcb7-4b2f-a015-35cae2ef063a" />
 
@@ -75,7 +75,7 @@
 
    <img width="612" alt="SCR-20250518-uiux" src="https://github.com/user-attachments/assets/9f875afd-bac8-470f-9ba1-764aebbe4254" />
 
-   This _snapshot_ file is used for diffing purposes: when you change `db.ts`, the runner can know how the schema changed. Now let's create a **migration**, referred to as **schema revision** in this library.
+   This _snapshot_ file is used for diffing purposes: when you change `db.ts`, the runner uses it to know how the schema changed. Now let's create a **migration**, referred to as **schema revision** in this library.
 
 6. Edit `db.ts` and remove any column from `UsersTable` (adding/removing tables also work):
 
@@ -94,7 +94,7 @@
    
    Then run:
 
-   `% tsx db.tb --revision`
+   `% tsx db.ts --revision`
 
    <img width="612" alt="SCR-20250518-ukwr" src="https://github.com/user-attachments/assets/f0ddeb7d-4511-4d76-95f7-052d434e8923" />
 
@@ -207,9 +207,9 @@ Generates `UNIQUE` clauses and associated indexes.
 
 ## Internals
 
-I wrote this because I was unhappy with the APIs and workflows available in [other](https://orm.drizzle.team/docs/migrations) [libraries](https://www.prisma.io/docs/orm/prisma-migrate/getting-started). Even Kysely itself [has its own API for migrations](https://kysely.dev/docs/migrations), which differs from the types used to define tables. I wanted my database management layer to be **extremely light**, but also architected in an transparent way, that would make me feel like I know what's going behind the scenes.
+I wrote this because I was unhappy with the APIs and workflows available in [other](https://orm.drizzle.team/docs/migrations) [libraries](https://www.prisma.io/docs/orm/prisma-migrate/getting-started). Even Kysely itself [has its own API for migrations](https://kysely.dev/docs/migrations), which differs from the types used to define tables. I wanted my database management layer to be **extremely light**, but also architected in an transparent way, that would make me feel like I know what's going on behind the scenes.
 
-The main class is `KyselyTables`, which provides the `buildSchema()`, `buildSchemaReset()` and `buildSchemaRevision()` methods. The main code that analyzes the table interfaces and their column fields is `#registerTableColumns()`. They all use [TypeScript's compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API) to properly parse the source file, no regexes involved. The whole API is heavily inspired by Kysely, and of course, compatible with Kysely.
+The main class is `KyselyTables`, which provides the `buildSchema()`, `buildSchemaReset()` and `buildSchemaRevision()` methods. The main method that analyzes the table interfaces and their column fields is `#registerTableColumns()`. They all use [TypeScript's compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API) to properly parse the source file, no regexes involved. The whole API is heavily inspired by Kysely, and of course, compatible with Kysely.
 
 The main class uses a `DialectAdapter` to generate the correct SQL statements for the database used.
 
@@ -217,11 +217,11 @@ As for parsing each column definition, it's done by a helper function called `ex
 
 The trickiest part of the library is the schema diff detection. 
 
-This first iteration uses [`json-diff`](https://github.com/andreyvit/json-diff), which is quite nice, but it still required some [massive data reconciliation glue code](https://github.com/galvez/kysely-tables/blob/dev/package/dialects/base.ts#L158). I aged six months in a week writing that function and do not recommend obssessing over it unless you have a very good alternative in mind and are willing to venture into the dark.
+This first iteration uses [`json-diff`](https://github.com/andreyvit/json-diff), which is quite nice, but it still required some [massive data reconciliation glue code](https://github.com/galvez/kysely-tables/blob/dev/package/dialects/base.ts#L158). I aged six months in a week writing that function and do not recommend obsessing over it unless you have a very good alternative in mind and are willing to venture into the dark.
 
 The [embedded runner](https://github.com/galvez/kysely-tables/blob/dev/package/runner.ts) that turns `db.ts` into a CLI is as simple as it can get. It uses [`minimist`](https://www.npmjs.com/package/minimist) for `process.argv` parsing and [`@clack/prompts`](https://www.npmjs.com/package/@clack/prompts) for the nice flows.
 
-This should be enough for you to start digging and contribute if you wish!
+This should be enough for you to start digging in and contribute if you wish!
 
 ## License
 
