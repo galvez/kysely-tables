@@ -1,0 +1,8 @@
+{
+  "name": "kysely-tables-sqlite-example",
+  "dependencies": {
+    "better-sqlite3": "latest",
+    "kysely": "latest",
+    "kysely-tables": "0.1.0"
+  }
+}
