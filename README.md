@@ -75,7 +75,22 @@
 
    This _snapshot_ file is used for diffing purposes: when you change `db.ts`, the runner can know how the schema changed. Now let's create a **migration**, referred to as **schema revision** in this library.
 
-6. Edit `db.ts` and remove any column from `UsersTable`. Then run:
+6. Edit `db.ts` and remove any column from `UsersTable`:
+
+   ```diff
+     export interface UsersTable {
+       id: Generated<Primary<number>>
+       name: Sized<string, 100> | null
+       email: Unique<Sized<string, 255>>
+   -   passwordHash: Text<string>
+       role: Default<string, "'member'">
+       createdAt: Default<Date, 'now()'>
+       updatedAt: Default<Date, 'now()'>
+       deletedAt: null | Date
+     }
+   ```
+   
+   Then run:
 
    `% tsx db.tb --revision`
 
@@ -90,6 +105,12 @@ Running only with `--apply` will sync up to the latest revision.
 Running only with `--apply <rev>` will sync up (or down) to the specified revision.
 
 Even though `kysely-tables` is responsible for diffing and generating the SQL statements, the migrations run through [Postgrator](https://github.com/rickbergfalk/postgrator) under the hood. Postgrator is a mature and extremely well tested migration runner with support for PostgreSQL, SQLite, MySQL and MSSQL. It's used by [Platformatic](https://github.com/platformatic/platformatic).
+
+## Reset
+
+For convenience, a `--reset` flag is also available:
+
+<img width="612" alt="SCR-20250519-bkcm" src="https://github.com/user-attachments/assets/286b033b-a249-481b-8e7e-30f92fa037b5" />
 
 ## Syntax
 
@@ -178,7 +199,7 @@ Generates `UNIQUE` clauses and associated indexes.
 
 ## Internals
 
-I wrote this because I was unhappy with the APIs and workflows available in other libraries. I wanted my database management layer to be extremely light, but also architected in an transparent way, that would make me feel like I know what's going behind the scenes.
+I wrote this because I was unhappy with the APIs and workflows available in [other](https://orm.drizzle.team/docs/migrations) [libraries](https://www.prisma.io/docs/orm/prisma-migrate/getting-started). Even Kysely itself has its own API for migrations, which differs from the types used to define tables. I wanted my database management layer to be **extremely light**, but also architected in an transparent way, that would make me feel like I know what's going behind the scenes.
 
 The main class is `KyselyTables`, which provides the `buildSchema()`, `buildSchemaReset()` and `buildSchemaRevision()` methods. The main code that analyzes the table interfaces and their column fields is `#registerTableColumns()`. They all use [TypeScript's compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API) to properly parse the source file, no regexes involved. The whole API is heavily inspired by Kysely, and of course, compatible with Kysely.
 
@@ -186,9 +207,11 @@ The main class uses a `DialectAdapter` to generate the correct SQL statements fo
 
 As for parsing each column definition, it's done by a helper function called `extractType()`, which will check for all special types and use them to populate flags in each `ColumnDefinition`.
 
-The trickiest part of the library is the schema diff detection. This first iteration uses [`json-diff`](https://github.com/andreyvit/json-diff), which is quite nice, but it still required some [massive data reconciliation glue code](https://github.com/galvez/kysely-tables/blob/dev/package/dialects/base.ts#L158). I aged six months in a week writing that function and do not recommend obssessing over it unless you have a very good alternative in mind and are willing to venture into the dark.
+The trickiest part of the library is the schema diff detection. 
 
-The embedded runner that turns `db.ts` into a CLI is as minimalist as it can get. It isues [`minimist`](https://www.npmjs.com/package/minimist) for `process.argv` parsing and [`@clack/prompts`](https://www.npmjs.com/package/@clack/prompts) for the nice flows.
+This first iteration uses [`json-diff`](https://github.com/andreyvit/json-diff), which is quite nice, but it still required some [massive data reconciliation glue code](https://github.com/galvez/kysely-tables/blob/dev/package/dialects/base.ts#L158). I aged six months in a week writing that function and do not recommend obssessing over it unless you have a very good alternative in mind and are willing to venture into the dark.
+
+The [embedded runner](https://github.com/galvez/kysely-tables/blob/dev/package/runner.ts) that turns `db.ts` into a CLI is as minimalist as it can get. It isues [`minimist`](https://www.npmjs.com/package/minimist) for `process.argv` parsing and [`@clack/prompts`](https://www.npmjs.com/package/@clack/prompts) for the nice flows.
 
 This should be enough for you to start digging and contribute if you wish!
 
