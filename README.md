@@ -102,6 +102,8 @@
 > 
 > Automated revisions are the most fragile part of this library at this moment. There are no tests for this feature yet, and it may break badly depending on the schema changes you carry out. It should handle most basic cases fine, but if you see anything wrong, [**please file a bug report**](https://github.com/galvez/kysely-tables/issues/new). To goal is to polish it to perfection. In case you want to dive in and debug it yourself, check out the [`schemaDiff()`](https://github.com/galvez/kysely-tables/blob/dev/package/dialects/base.ts#L158) function, though that is one extremely delicate piece of code. See the <a href="#internals"><b>Internals</b></a> section for more info.
 
+Running with `--revision --empty` creates stub empty revisions, when you really need to write the SQL yourself.
+
 Running with `--revision <rev>` gives a custom name to the revision.
 
 Running with `--apply` bypasses the prompt check.
