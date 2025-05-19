@@ -203,7 +203,7 @@ async function resetSchema<Database>(
       } else {
         s.stop(pc.bold(pc.redBright('Cancelled.')))
         log.message()
-        log.error(pc.redBright(`An unknown error ocurred: ${err!.toString()}.`))
+        throw err
       }
       process.exit(1)
     }

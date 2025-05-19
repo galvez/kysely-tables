@@ -21,6 +21,7 @@ export interface UsersTable {
   id: Generated<Primary<number>>
   name: Sized<string, 100> | null
   email: Unique<Sized<string, 255>>
+  passwordHash: Text<string>
   role: Default<string, "'member'">
   createdAt: Default<Date, 'now()'>
   updatedAt: Default<Date, 'now()'>
