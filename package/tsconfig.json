@@ -12,6 +12,5 @@
       "kysely-tables/runner": ["./runner"]
     }
   },
-  "include": ["./**/*"],
-  "exclude": ["./**/*.test.ts", "./fixtures/**", "./examples/**"]
+  "exclude": ["dist", "tests", "fixtures", "examples"]
 }
