@@ -71,7 +71,7 @@
 
    <img width="612" alt="SCR-20250518-uhmg" src="https://github.com/user-attachments/assets/722062b9-dcb7-4b2f-a015-35cae2ef063a" />
 
-   Proceed and you'll see that both `database.sql` and `database.snapshot.ts` are created.
+   Proceed and you'll see that both `db.sql` and `db.snapshot.ts` are created.
 
    <img width="612" alt="SCR-20250518-uiux" src="https://github.com/user-attachments/assets/9f875afd-bac8-470f-9ba1-764aebbe4254" />
 
