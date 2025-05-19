@@ -75,7 +75,7 @@
 
    This _snapshot_ file is used for diffing purposes: when you change `db.ts`, the runner can know how the schema changed. Now let's create a **migration**, referred to as **schema revision** in this library.
 
-6. Edit `db.ts` and remove any column from `UsersTable`:
+6. Edit `db.ts` and remove any column from `UsersTable` (adding/removing tables also work):
 
    ```diff
      export interface UsersTable {
