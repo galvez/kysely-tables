@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { snakeCase } from 'scule'
 
-import { extractType, extractDialect } from './tree'
+import { extractType, extractDialect } from './tree.js'
 
 import {
   Dialect,
@@ -13,7 +13,7 @@ import {
   TableDefinition,
   ColumnDefinition,
   SchemaRevisionStatement,
-} from './types'
+} from './types.js'
 
 export class KyselyTables {
   tables: TableDefinition[]

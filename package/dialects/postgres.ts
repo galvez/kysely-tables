@@ -1,9 +1,9 @@
-import { BaseDialect } from './base'
+import { BaseDialect } from './base.js'
 import {
   TableDefinition,
   ColumnDefinition,
   SchemaRevisionStatement,
-} from '../types'
+} from '../types.js'
 
 export class PostgresDialect extends BaseDialect {
   buildPreamble(): string {

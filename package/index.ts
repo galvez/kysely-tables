@@ -1,10 +1,10 @@
-export { createDatabase } from './runner'
+export { createDatabase } from './runner.js'
 
-import { Dialect, SchemaRevisionStatement } from './types'
-import { KyselyTables } from './ktables'
+import { Dialect, SchemaRevisionStatement } from './types.js'
+import { KyselyTables } from './ktables.js'
 
-export { PostgresDialect, SqliteDialect } from './dialects'
-export { KyselyTables } from './ktables'
+export { PostgresDialect, SqliteDialect } from './dialects/index.js'
+export { KyselyTables } from './ktables.js'
 
 export type {
   Dialect,
@@ -12,9 +12,9 @@ export type {
   ColumnDefinition,
   TableDefinition,
   BuildSchemaOptions,
-} from './types'
+} from './types.js'
 
-export type { Reference, Unique, Default, Primary, Sized, Text } from './types'
+export type { Reference, Unique, Default, Primary, Sized, Text } from './types.js'
 
 type CreateSQLSchemaFromFileOptions = {
   filePath: string

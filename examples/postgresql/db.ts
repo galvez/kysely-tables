@@ -42,6 +42,8 @@ const driver = new Pool({
 const dialect = new PostgresDialect({ pool: driver })
 
 export default createDatabase<Database>({
+  // Must repeat the database name in this option so it can be picked up by Postgrator
+  name: 'saas',
   driver,
   config: {
     dialect,

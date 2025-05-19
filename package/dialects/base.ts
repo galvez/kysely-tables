@@ -6,7 +6,7 @@ import {
   TableDefinition,
   ColumnDefinition,
   SchemaRevisionStatement,
-} from '../types'
+} from '../types.js'
 
 export abstract class BaseDialect implements DialectAdapter {
   tables?: TableDefinition[]

@@ -21,8 +21,8 @@ import {
   createSQLSchemaFromSource,
   createSQLSchemaResetFromSource,
   createSQLSchemaRevision,
-} from './index'
-import type { DatabaseDriver, SchemaRevisionStatement } from './types'
+} from './index.js'
+import type { DatabaseDriver, SchemaRevisionStatement } from './types.js'
 
 type Spinner = {
   start: (msg?: string) => void
@@ -49,14 +49,20 @@ export function createDatabase<Database>({
 
   if (argv.create) {
     createSchema<Database>(argv, database)
-  }
-
-  if (argv.reset) {
+  } else if (argv.reset) {
     resetSchema<Database>(argv, database)
-  }
-
-  if (argv.revision) {
+  } else if (argv.revision) {
     createSchemaRevision(
+      {
+        driver,
+        config,
+        name,
+      },
+      argv,
+      driver,
+    )
+  } else if (argv.apply) {
+    applySchemaRevisions(
       {
         driver,
         config,
@@ -215,6 +221,12 @@ async function createSchemaRevision(
     argv._[0],
   )
 
+  if (argv.empty) {
+    writeEmptyRevision(sourceDir, argv.revision, 'do')
+    writeEmptyRevision(sourceDir, argv.revision, 'undo')
+    return
+  }
+
   const snapshotFileName = `${sourceBaseFileName}.snapshot.ts`
   const snapshotFilePath = join(sourceDir, snapshotFileName)
   if (!existsSync(snapshotFilePath)) {
@@ -326,6 +338,35 @@ async function createSchemaRevision(
   }
 }
 
+async function applySchemaRevisions(
+  options: CreateDatabaseOptions,
+  argv: ParsedArgs,
+  driver: DatabaseDriver,
+) {
+  const { sourceDir } = readSource(argv._[0])
+  const client = await getPostgratorClient(driver)
+
+  if (client) {
+    const postgrator = new Postgrator({
+      migrationPattern: join(sourceDir, 'revisions'),
+      driver: client.driver as 'pg' | 'sqlite3',
+      ...(client.driver === 'sqlite3' && {
+        betterSqlite3: true,
+      }),
+      database: options.name,
+      schemaTable: 'schemaversion',
+      execQuery: client.execQuery,
+    })
+    await postgrator.migrate(argv.apply)
+    log.success(timed(`Database updated`, perf.now()))
+    process.exit()
+  } else {
+    log.error('An error occured connection to the database.')
+    console.log()
+    process.exit(1)
+  }
+}
+
 function readSource(sourceFilePath: string): Record<string, string> {
   const { name, ext, dir } = parse(sourceFilePath)
   const snapshoptFileName = `${name}.snapshot${ext}`
@@ -339,6 +380,48 @@ function readSource(sourceFilePath: string): Record<string, string> {
     snapshoptFileName,
     snapshoptFilePath,
     source,
+  }
+}
+
+
+function writeEmptyRevision(
+  sourceDir: string,
+  name: string | boolean,
+  type: 'do' | 'undo',
+) {
+  const revisionsDir = join(sourceDir, 'revisions')
+  if (!existsSync(revisionsDir)) {
+    mkdirSync(revisionsDir, { recursive: true })
+    log.warn(
+      `Created ${pc.cyan('revisions')} directory, add it to source control.`,
+    )
+  }
+  const revisions = [
+    ...new Set(
+      readdirSync(revisionsDir)
+        .filter((_) => _.match(/\d\d\d\.do/))
+        .map((_) => _.slice(0, 3)),
+    ),
+  ].sort()
+  const nextRevision = String(
+    revisions.length ? parseInt(revisions.at(-1)!) : '001',
+  ).padStart(3, '0')
+
+  const revisionName =
+    name === true
+      ? new Date().getTime()
+      : kebabCase((name as string).replace(/\s+/g, '-'))
+  const revisionFileName = `${nextRevision}.${type}.${revisionName}.sql`
+
+  {
+    const start = perf.now()
+    writeFileSync(
+      join(revisionsDir, revisionFileName),
+      '',
+    )
+    log.success(
+      timed(`Created empty ${pc.cyan(`revisions/${revisionFileName}`)}`, start),
+    )
   }
 }
 
@@ -370,16 +453,16 @@ function writeRevision(
     name === true
       ? new Date().getTime()
       : kebabCase((name as string).replace(/\s+/g, '-'))
-  const doRevisionFileName = `${nextRevision}.${type}.${revisionName}.sql`
+  const revisionFileName = `${nextRevision}.${type}.${revisionName}.sql`
 
   {
     const start = perf.now()
     writeFileSync(
-      join(revisionsDir, doRevisionFileName),
+      join(revisionsDir, revisionFileName),
       revision.map((_) => _.sql).join('\n\n'),
     )
     log.success(
-      timed(`Created ${pc.cyan(`revisions/${doRevisionFileName}`)}`, start),
+      timed(`Created ${pc.cyan(`revisions/${revisionFileName}`)}`, start),
     )
   }
 }

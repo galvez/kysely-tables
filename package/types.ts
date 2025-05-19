@@ -1,8 +1,8 @@
 import type { Pool, PoolClient } from 'pg'
 import type { Database as SqliteDatabase } from 'better-sqlite3'
 
-import { PostgresDialect } from './dialects/postgres'
-import { SqliteDialect } from './dialects/sqlite'
+import { PostgresDialect } from './dialects/postgres.js'
+import { SqliteDialect } from './dialects/sqlite.js'
 
 export type DatabaseDriver = Pool | PoolClient | SqliteDatabase
 

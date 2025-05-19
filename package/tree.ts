@@ -1,6 +1,6 @@
 import ts from 'typescript'
-import type { Dialect, ColumnDefinition } from './types'
-import { PostgresDialect, SqliteDialect } from './dialects'
+import type { Dialect, ColumnDefinition } from './types.js'
+import { PostgresDialect, SqliteDialect } from './dialects/index.js'
 
 const dialects: Record<string, Dialect> = { PostgresDialect, SqliteDialect }
 
