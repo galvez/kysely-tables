@@ -26,7 +26,7 @@
 
 ## Tutorial
 
-1. Check out this repository, `pnpm install` and `cd` to [`./example/sqlite`](https://github.com/galvez/kysely-tables/tree/main/examples/sqlite).
+1. Check out this repository, `pnpm install` and `cd` to [`./examples/sqlite`](https://github.com/galvez/kysely-tables/tree/main/examples/sqlite).
 
 2. Inspect `db.ts` to see how tables are defined. Note that these types are fully Kysely-compatible. The schema types serve as hints for schema generation, but Kysely receives the underlying types it expects.
 
