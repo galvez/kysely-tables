@@ -357,7 +357,7 @@ async function applySchemaRevisions(
       schemaTable: 'schemaversion',
       execQuery: client.execQuery,
     })
-    await postgrator.migrate(argv.apply)
+    await postgrator.migrate(String(argv.apply ?? 'max'))
     log.success(timed(`Database updated`, perf.now()))
     process.exit()
   } else {
@@ -382,7 +382,6 @@ function readSource(sourceFilePath: string): Record<string, string> {
     source,
   }
 }
-
 
 function writeEmptyRevision(
   sourceDir: string,
@@ -410,15 +409,12 @@ function writeEmptyRevision(
   const revisionName =
     name === true
       ? new Date().getTime()
-      : kebabCase((name as string).replace(/\s+/g, '-'))
+      : `${kebabCase((name as string).replace(/\s+/g, '-'))}.${new Date().getTime()}`
   const revisionFileName = `${nextRevision}.${type}.${revisionName}.sql`
 
   {
     const start = perf.now()
-    writeFileSync(
-      join(revisionsDir, revisionFileName),
-      '',
-    )
+    writeFileSync(join(revisionsDir, revisionFileName), '')
     log.success(
       timed(`Created empty ${pc.cyan(`revisions/${revisionFileName}`)}`, start),
     )

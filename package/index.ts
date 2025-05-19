@@ -14,7 +14,14 @@ export type {
   BuildSchemaOptions,
 } from './types.js'
 
-export type { Reference, Unique, Default, Primary, Sized, Text } from './types.js'
+export type {
+  Reference,
+  Unique,
+  Default,
+  Primary,
+  Sized,
+  Text,
+} from './types.js'
 
 type CreateSQLSchemaFromFileOptions = {
   filePath: string
