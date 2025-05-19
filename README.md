@@ -67,7 +67,7 @@
 
    `% tsx db.tb --revision`
 
-   <img width="922" alt="SCR-20250518-ukwr" src="https://github.com/user-attachments/assets/f0ddeb7d-4511-4d76-95f7-052d434e8923" />
+   <img width="612" alt="SCR-20250518-ukwr" src="https://github.com/user-attachments/assets/f0ddeb7d-4511-4d76-95f7-052d434e8923" />
 
 Running with `--revision <rev>` gives a custom name to the revision.
 
