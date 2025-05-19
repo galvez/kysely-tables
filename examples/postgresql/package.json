@@ -2,7 +2,7 @@
   "name": "kysely-tables-postgres-example",
   "dependencies": {
     "kysely": "latest",
-    "kysely-tables": "workspace:^",
+    "kysely-tables": "0.1.0",
     "pg": "latest"
   }
 }
