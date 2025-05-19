@@ -12,6 +12,18 @@
 
 **And also** for **creating and running migrations**, very much like Prisma and Drizzle.
 
+> [!IMPORTANT]
+>
+> This is a **proof-of-concept** project.
+>
+> The idea is to use _annotation types_ to enhance regular Kysely types while keeping them working as before.
+>
+> The _annotations_ are then used by a processor to generate SQL schemas and migrations (when diffing).
+>
+> It's in a state where it's **just about good enough** to start being tested in real projects.
+>
+> Bug reports and feature requests are extremely welcome.
+
 ## Tutorial
 
 1. Check out this repository, `pnpm install` and `cd` to [`./example/sqlite`](https://github.com/galvez/kysely-tables/tree/main/examples/sqlite).
