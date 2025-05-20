@@ -1,4 +1,4 @@
-import db from './database'
+import db from './db.js'
 
 export function findUserById(id: number) {
   return db.selectFrom('users').where('id', '=', id).selectAll()
