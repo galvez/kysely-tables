@@ -50,9 +50,6 @@
     "prettier": "^3.5.3",
     "tsx": "^4.19.4"
   },
-  "exports": {
-    "./*": "./dist/*"
-  },
   "typesVersions": {
     "*": {
       "*": [
