@@ -2,7 +2,7 @@
   "type": "module",
   "name": "kysely-tables",
   "description": "Use the same Kysely types for your SQL table schema, migrations and queries.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -49,9 +49,6 @@
     "oxlint": "^0.16.10",
     "prettier": "^3.5.3",
     "tsx": "^4.19.4"
-  },
-  "exports": {
-    "./*": "./dist/*"
   },
   "typesVersions": {
     "*": {

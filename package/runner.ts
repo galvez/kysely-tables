@@ -36,10 +36,13 @@ type CreateDatabaseOptions = {
   driver: DatabaseDriver
   config: KyselyConfig
   name?: string
+  /** Set the Postgrator `driver` option, if using a driver other `pg` or `better-sqlite3` */
+  driverType?: Postgrator.Options['driver']
 }
 
 export function createDatabase<Database>({
   driver,
+  driverType,
   config,
   name,
 }: CreateDatabaseOptions): Kysely<Database> {
@@ -57,6 +60,7 @@ export function createDatabase<Database>({
         driver,
         config,
         name,
+        driverType,
       },
       argv,
       driver,
@@ -67,6 +71,7 @@ export function createDatabase<Database>({
         driver,
         config,
         name,
+        driverType,
       },
       argv,
       driver,
@@ -314,7 +319,7 @@ async function createSchemaRevision(
   }
 
   if (shouldApply) {
-    const client = await getPostgratorClient(driver)
+    const client = await getPostgratorClient(driver, options.driverType)
 
     if (client) {
       const postgrator = new Postgrator({
@@ -344,7 +349,7 @@ async function applySchemaRevisions(
   driver: DatabaseDriver,
 ) {
   const { sourceDir } = readSource(argv._[0])
-  const client = await getPostgratorClient(driver)
+  const client = await getPostgratorClient(driver, options.driverType)
 
   if (client) {
     const postgrator = new Postgrator({
@@ -463,15 +468,32 @@ function writeRevision(
   }
 }
 
-async function getPostgratorClient(driver: DatabaseDriver): Promise<
+function isPgDriver(
+  driver: unknown,
+  driverType?: CreateDatabaseOptions['driverType'],
+): driver is PostgresDriver {
+  return driver instanceof PostgresDriver || driverType === 'pg'
+}
+
+function isSqliteDriver(
+  driver: unknown,
+  driverType?: CreateDatabaseOptions['driverType'],
+): driver is SqliteDriver.Database {
+  return driver instanceof SqliteDriver || driverType === 'sqlite3'
+}
+
+async function getPostgratorClient(
+  driver: DatabaseDriver,
+  driverType?: CreateDatabaseOptions['driverType'],
+): Promise<
   | {
       driver: string
       execQuery: (query: string) => Promise<{ rows: any[] }>
     }
   | undefined
 > {
-  if (driver instanceof PostgresDriver) {
-    const client = await driver.connect()
+  if (isPgDriver(driver, driverType)) {
+    const client = await (driver as PostgresDriver).connect()
     if (client) {
       return {
         driver: 'pg',
@@ -480,7 +502,7 @@ async function getPostgratorClient(driver: DatabaseDriver): Promise<
         },
       }
     }
-  } else if (driver instanceof SqliteDriver) {
+  } else if (isSqliteDriver(driver, driverType)) {
     return {
       driver: 'sqlite3',
       async execQuery(query: string) {
